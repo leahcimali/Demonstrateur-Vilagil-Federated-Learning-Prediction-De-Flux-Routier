@@ -20,7 +20,7 @@ torch.manual_seed(seed)
 
 # Get the path to the configuration file from the command-line arguments
 if len(sys.argv) != 2:
-    print("Usage: python3 experiment.py CONFIG_FILE_PATH")
+    print("Usage: python3 ./run_exp.py CONFIG_FILE_PATH")
     sys.exit(1)
 config_file_path = sys.argv[1]
 
