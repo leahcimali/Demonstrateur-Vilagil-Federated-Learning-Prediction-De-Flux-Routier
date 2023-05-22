@@ -8,6 +8,11 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     """
     Train your model and evaluate on the validation set
     Defines a loss function and optimizer
+    Training is done using the recursive approch for horizon > 1. 
+    You iteratively predict one step ahead and use the predicted value as 
+    an input for predicting the next time step. 
+    This means you make a prediction for the next time step, update the input sequence by appending 
+    the predicted value, and repeat the process until the end of the horizon.
 
     Parameters
     ----------
@@ -82,7 +87,8 @@ def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_
         
         """
         Train your model and evaluate on the validation set
-        Defines a loss function and optimizer
+        Defines a loss function and optimizer.
+        
 
         Parameters
         ----------
@@ -140,9 +146,9 @@ def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_
         return valid_losses
     
 
-def testmodel_recursive(best_model, test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):
+def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):
     """
-    Test model using test data
+    Test model using test data :  Testing is done using the recursive approch for horizon > 1 
 
     Parameters
     ----------
@@ -159,7 +165,8 @@ def testmodel_recursive(best_model, test_loader, path=None, meanstd_dict =None, 
         if the data were center and reduced
     
     sensor_order_list : list
-        List containing the sensor number in order of the data training
+        List containing the sensor number in order of the data training because node number 
+        and sensor number may be different in federated learning
     
     maximum : float
         if the data were normalize using maximum value
@@ -168,9 +175,12 @@ def testmodel_recursive(best_model, test_loader, path=None, meanstd_dict =None, 
     ----------
     y_pred: array
         predicted values by the model
-
     y_true : array
         actual values to compare to the prediction
+
+    The returned array are in shape :
+    (length of time serie, horizon of prediction , time serie dimension)
+        
     """
 
     
@@ -203,14 +213,11 @@ def testmodel_recursive(best_model, test_loader, path=None, meanstd_dict =None, 
             for i in range(1, horizon_size):
                 outputs = best_model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
                 final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
-            # loss = criterion(final_output, targets)
-            # test_loss += loss.item()
+        
             # Save the predictions and actual values for plotting later
             predictions.append(final_output.cpu().numpy())
             actuals.append(targets.cpu().numpy())
-    # test_loss /= len(test_loader)
-    # print(f"Test Loss: {test_loss:.4f}")
-    
+
     # Concatenate the predictions and actuals
     predictions = np.concatenate(predictions, axis=0)
     actuals = np.concatenate(actuals, axis=0)
@@ -226,86 +233,4 @@ def testmodel_recursive(best_model, test_loader, path=None, meanstd_dict =None, 
     elif maximum :
         y_pred = predictions[:]*maximum
         y_true = actuals[:]*maximum 
-    return y_true, y_pred
-
-
-def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):
-    """
-    Test model using test data
-
-    Parameters
-    ----------
-    best_model : any
-        model to test.
-
-    test_loader : DataLoader
-        Test Dataloader.
-
-    path : string
-        model path to load the model from
-    
-    meanstd_dict : dictionary
-        if the data were center and reduced
-    
-    sensor_order_list : list
-        List containing the sensor number in order of the data training
-    
-    maximum : float
-        if the data were normalize using maximum value
-    
-    Returns
-    ----------
-    y_pred: array
-        predicted values by the model
-
-    y_true : array
-        actual values to compare to the prediction
-    """
-    import numpy as np
-    import torch
-
-    # Load the best model and evaluate on the test set
-    criterion = torch.nn.MSELoss()
-    if path:
-        best_model.load_state_dict(torch.load(path))
-    best_model.double()
-    best_model.eval()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    best_model.to(device)
-
-    # Evaluate the model on the test set
-    test_loss = 0.0
-    predictions = []
-    actuals = []
-    with torch.no_grad():
-        for inputs, targets in test_loader:
-            inputs, targets = inputs.to(device), targets.to(device)
-            batch_size, horizon_size, num_nodes = targets.size()
-            final_output = torch.empty((batch_size, 0, num_nodes)).to(device)
-            for i in range(horizon_size):
-                outputs = best_model(torch.cat((inputs[:, i:, :].double(), final_output[:, -5:, :].double()), dim=1))
-                final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
-            # loss = criterion(final_output, targets)
-            # test_loss += loss.item()
-            # Save the predictions and actual values for plotting later
-            predictions.append(final_output.cpu().numpy())
-            actuals.append(targets.cpu().numpy())
-    # test_loss /= len(test_loader)
-    # print(f"Test Loss: {test_loss:.4f}")
-
-    # Concatenate the predictions and actuals
-    predictions = np.concatenate(predictions, axis=0)
-    actuals = np.concatenate(actuals, axis=0)
-    y_pred = predictions[:]
-    y_true = actuals[:]
-    if len(sensor_order_list) > 1:
-        for k in range(len(sensor_order_list)):
-            y_pred[k] = y_pred[k] * meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
-            y_true[k] = y_true[k] * meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
-    elif len(sensor_order_list) == 1:
-        y_pred = y_pred * meanstd_dict[sensor_order_list[0]]['std'] + meanstd_dict[sensor_order_list[0]]['mean']
-        y_true = y_true * meanstd_dict[sensor_order_list[0]]['std'] + meanstd_dict[sensor_order_list[0]]['mean']
-    elif maximum:
-        y_pred = predictions[:] * maximum
-        y_true = actuals[:] * maximum
     return y_true, y_pred

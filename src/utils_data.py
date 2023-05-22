@@ -61,13 +61,20 @@ def center_reduce(df):
     -------
     normalized_df : pd.Dataframe
         Dataframe with the input center and reduce
-
+    meanstd_dict : dictionary
+        Dictionary containing the mean and std of all columns to unormalize data
     """
    
+    meanstd_dict={}
+    for column in df.columns:
+        colmean = df[column].mean()
+        colstd = df[column].std()
+        meanstd_dict[column] = {'mean':colmean,'std':colstd}
+    
     normalized_df=(df-df.mean())/df.std()
 
-    return normalized_df
-#TODO
+    return normalized_df, meanstd_dict
+
 def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, subgraph = False, overwrite = False):
     import pickle 
     from src.models import LSTMModel
@@ -129,14 +136,14 @@ from torch.utils.data import Dataset
 class TimeSeriesDataset(Dataset):
     
     
-    def __init__(self, data, window_size, stride, target_size=1):
+    def __init__(self, data, window_size, stride, prediction_horizon=1):
         self.data = data
         self.window_size = window_size
         self.stride = stride
-        self.target_size = target_size
+        self.prediction_horizon = prediction_horizon
 
     def __len__(self):
-        return (len(self.data) - self.window_size - self.target_size) // self.stride + 1
+        return (len(self.data) - self.window_size - self.prediction_horizon) // self.stride + 1
 
     def __getitem__(self, index):
         # Calculer le début et la fin de la fenêtre d'entrée
@@ -157,23 +164,23 @@ class TimeSeriesDataset(Dataset):
 
         # Calculer le début et la fin de la fenêtre de sortie
         start = end
-        end = start + self.target_size
+        end = start + self.prediction_horizon
 
         # Extraire les données de sortie
         targets = self.data[start:end]
 
         # Ajouter du padding ou du troncage si nécessaire pour avoir une taille fixe
-        if len(targets) < self.target_size:
-            targets = np.pad(targets, (0, self.target_size - len(targets)), 'constant')
-        elif len(targets) > self.target_size:
-            targets = targets[:self.target_size]
+        if len(targets) < self.prediction_horizon:
+            targets = np.pad(targets, (0, self.prediction_horizon - len(targets)), 'constant')
+        elif len(targets) > self.prediction_horizon:
+            targets = targets[:self.prediction_horizon]
 
         # Convertir les données de sortie en tenseur PyTorch
         targets = torch.from_numpy(targets).float()
         return inputs, targets
 
     
-def my_data_loader(data, window_size = 7, stride = 1,target_size=1,batch_size=32):
+def my_data_loader(data, window_size = 7, stride = 1,prediction_horizon=1,batch_size=32):
     from torch.utils.data import DataLoader
 
     """
@@ -187,18 +194,18 @@ def my_data_loader(data, window_size = 7, stride = 1,target_size=1,batch_size=32
         Sliding window use for training
     stride : int
         the amount of movement after processing each sliding windows
-    target_size : int 
+    prediction_horizon : int 
         size of the target values of each sliding windows
 
     """
     
-    dataset = TimeSeriesDataset(data.values, window_size, stride, target_size)
+    dataset = TimeSeriesDataset(data.values, window_size, stride, prediction_horizon)
     loader = DataLoader(dataset, batch_size, shuffle=False)
     if torch.cuda.is_available():
         loader = [(inputs.to(device), targets.to(device)) for inputs, targets in loader]
     return loader
 
-def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, target_size=1, batch_size=32):
+def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, prediction_horizon=1, batch_size=32):
     """
     Returns torch.DataLoader for train validation and test data
     
@@ -212,7 +219,7 @@ def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window
         Sliding window use for training
     stride : int
         the amount of movement after processing each sliding windows
-    target_size : int 
+    prediction_horizon : int 
         size of the target values of each sliding windows
     """
     
@@ -225,11 +232,11 @@ def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window
     val_data =  df_PeMS[columns][int(train_len * perc_train): int(train_len * (perc_train + perc_val))]
     test_data = df_PeMS[columns][int(train_len * (perc_train + perc_val)):]
     
-    train_loader = my_data_loader(train_data, window_size, stride, target_size, batch_size)
-    val_loader = my_data_loader(val_data, window_size, stride, target_size, batch_size)
-    test_loader = my_data_loader(test_data, window_size, stride, target_size, batch_size)
+    train_loader = my_data_loader(train_data, window_size, stride, prediction_horizon, batch_size)
+    val_loader = my_data_loader(val_data, window_size, stride, prediction_horizon, batch_size)
+    test_loader = my_data_loader(test_data, window_size, stride, prediction_horizon, batch_size)
 
-    return train_loader, val_loader, test_loader 
+    return train_loader, val_loader, test_loader, test_data
 
 
 
@@ -278,7 +285,7 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
     return df_PeMS, df_distance
 
 
-def local_dataset(df, nodes, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, target_size=1, batch_size=32):
+def local_dataset(df, nodes, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, prediction_horizon=1, batch_size=32):
     """
     Create datasets and data loaders for training, validation, and test sets
 
@@ -293,7 +300,7 @@ def local_dataset(df, nodes, perc_train = 0.7, perc_val = 0.15,  window_size = 7
     import pandas as pd
     import warnings
 
-    if nodes == 0 or not (nodes in list(df.columns)):
+    if nodes == 0 or not (set(nodes).issubset(set(df.columns))):
         warnings.warn("Nodes selected not in dataset or empty filter, processing all nodes")
         nodes = df.columns
  
@@ -302,16 +309,16 @@ def local_dataset(df, nodes, perc_train = 0.7, perc_val = 0.15,  window_size = 7
 
     for i in nodes: 
         
-        train, val, test = createLoaders(pd.DataFrame(df.loc[:,i]),
+        train, val, test, test_data = createLoaders(pd.DataFrame(df.loc[:,i]),
                                          perc_train = perc_train,
                                          perc_val = perc_val,
                                          window_size = window_size,
                                          stride = stride, 
-                                         target_size = target_size,
+                                         prediction_horizon = prediction_horizon,
                                          batch_size = batch_size )
         
         
-        data_dict[counter]={'train':train,'val':val,'test':test}
+        data_dict[counter]={'train':train,'val':val,'test':test, "test_data" :test_data }
         counter = counter + 1
 
     return data_dict
@@ -338,12 +345,16 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
 
     adjacency_matrix : array
         the adjacency matrix of PeMS
+
+    meanstd_dict : dictionary
+        Dictionary containing the mean and std of the prenormalize DataFrame
     """
 
     # Filter nodes to retain only n nearest neighbors
-    graph_init = create_graph(df_distance)
-    graph_nearest = subgraph_dijkstra(graph_init, init_node, n_neighbors)
-    df_PeMS = df_PeMS[list(graph_nearest.nodes)]
+    graph = create_graph(df_distance)
+    if n_neighbors :
+        graph = subgraph_dijkstra(graph, init_node, n_neighbors)
+        df_PeMS = df_PeMS[list(graph.nodes)]
 
     #Sort data by mean traffic flow
     if sort_by_mean:   
@@ -352,32 +363,69 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
         column_order = list(index_mean_flow)
         df_PeMS = df_PeMS.reindex(columns = column_order)
     
-    adjacency_matrix = compute_adjacency_matrix(graph_nearest,list(df_PeMS.columns))
+    adjacency_matrix = compute_adjacency_matrix(graph,list(df_PeMS.columns))
 
     if smooth :
         df_PeMS = exp_smooth(df_PeMS)
     
     if center_and_reduce :
-        df_PeMS = center_reduce(df_PeMS)
-        return df_PeMS, adjacency_matrix
+        df_PeMS, meanstd_dict = center_reduce(df_PeMS)
+        return df_PeMS, adjacency_matrix, meanstd_dict
     elif normalize :
         df_PeMS = normalize_data(df_PeMS)
         
     return df_PeMS, adjacency_matrix
 
-def plot_prediction(y_true, y_pred):
+def plot_prediction(y_true, y_pred, test_data,meanstd_dict, window_size, time_point_t=0,  node = 0):
 
     """
     Simple function for a line plot of actual versus prediction values
 
+    Parameters
+    ---------- 
+    y_true, y_pred : array
+        true value and predicted value to plot. The array are in shape 
+        (length of time serie, horizon of prediction , time serie dimension)
+    meanstd_dict : dictionary
+        Dictionary containing the mean and std of the test data to unnormalize  
+    window_size : 
+        size of the sliding window
+    time_point_t : int 
+        Which time point to start ploting
+    node : int
+        node number/time serie dimension to plot in case of a multivariate forecasting
+
     """
 
     import matplotlib.pyplot as plt
-    for i in range(len(y_pred[0,:])):
+    index = test_data.index
+    test_data = test_data* meanstd_dict['std'] + meanstd_dict['mean']
+    prediction_horizon = y_true.shape[1]
+    if y_true.shape[1:] == (1,1) :
+            plt.figure(figsize=(30, 5))
+            plt.title(f'Actual vs Prediction ')
+            plt.plot(y_true[:,0,0],label='Actuals')
+            plt.plot(y_pred[:,0,0], label='Predictions')
+            plt.xlabel('Time')
+            plt.ylabel('Value')
+            plt.legend()
+            plt.show()
+    else:
+        window_start = time_point_t
+        window_end = time_point_t + window_size
         plt.figure(figsize=(30, 5))
-        plt.title(f'Actual vs Prediction for {i}')
-        plt.plot(y_true[:,i],label='Actuals')
-        plt.plot(y_pred[:,i], label='Predictions')
+        plt.title(f' Actual vs Prediction ')
+        # plot y_true as scatter plot with lines
+        plt.scatter(index[window_end:window_end+prediction_horizon],y_true[time_point_t,:,node],color='green',label='Actuals')
+        plt.plot(index[window_end:window_end+prediction_horizon],y_true[time_point_t,:,node],color='green', linestyle='-', linewidth=1)
+        # plot y_pred as scatter plot with lines
+        plt.scatter(index[window_end:window_end+prediction_horizon],y_pred[time_point_t,:,node],color='red', label='Predictions')
+        plt.plot(index[window_end:window_end+prediction_horizon],y_pred[time_point_t,:,node], color='red', linestyle='-', linewidth=1)
+
+        # plot a grey area for a sliding window
+        plt.plot(index[window_start:window_end+1], test_data[window_start:window_end+1], label='y_true')
+        plt.axvspan(index[window_start], index[window_end], alpha=0.1, color='gray')
+        plt.plot()
         plt.xlabel('Time')
         plt.ylabel('Value')
         plt.legend()

@@ -118,6 +118,7 @@ def fed_training_plan(main_model, data_dict, rounds=3, epoch=200, model_path= '.
         torch.save(main_model.state_dict(), f'{model_path}model_round_{round}.pth')
     
     print("FedAvg All Rounds Complete !")
+    return main_model
 
 
 

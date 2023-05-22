@@ -20,7 +20,7 @@ class Params():
             self.nodes_to_filter = config['nodes_to_filter']  #[118,168,261]
             self.number_of_nodes =  config['number_of_nodes']  #[118,168,261]
             self.window_size = config['window_size']
-            self.target_size = config['target_size']
+            self.prediction_horizon = config['prediction_horizon']
             self.stride = config['stride']
             self.communication_rounds = config['communication_rounds']
             self.num_epochs_local_no_federation = config['num_epochs_local_no_federation']
@@ -30,6 +30,7 @@ class Params():
 
 
 def convert_PeMS_to_csv(flow_file= "./../data/PEMS04/PEMS04.npz", csv_file = "./../data/PEMS04/distance.csv" ):
+    
     """
     Small utils function to convert a Npz file for the PeMS data into a csv
     """
