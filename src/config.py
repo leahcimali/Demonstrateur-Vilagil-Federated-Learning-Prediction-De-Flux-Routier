@@ -26,6 +26,11 @@ class Params():
             self.num_epochs_local_no_federation = config['num_epochs_local_no_federation']
             self.num_epochs_local_federation = config['num_epochs_local_federation']
             self.learning_rate = config['learning_rate']
+            self.plot = config['plot']
+            self.time_point_to_plot = config['time_point_to_plot']
+            self.print_metrics = config["print_metrics"]  
+    
+    
 
 
 

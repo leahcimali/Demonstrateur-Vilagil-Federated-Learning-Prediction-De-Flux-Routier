@@ -59,8 +59,10 @@ if params.num_epochs_local_no_federation:
                                                                   remove = False, learning_rate=params.learning_rate)
         
         y_true, y_pred = testmodel(local_model,data_dict['test'], meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
-        print(calculate_metrics(y_true, y_pred))
-        plot_prediction(y_true, y_pred, data_dict['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=0, node=0)
+        if params.print_metrics:
+            print(calculate_metrics(y_true, y_pred))
+        if params.plot : 
+            plot_prediction(y_true, y_pred, data_dict['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=params.time_point_to_plot, node=0, plot_fig_name = f'Local_{params.num_epochs_local_no_federation}epochs_node_{node}' )
 
 # # Federated Learning Experiment
 if params.num_epochs_local_federation:
@@ -70,10 +72,12 @@ if params.num_epochs_local_federation:
                             output_size= LSTM_output_size)
     
     model = fed_training_plan(main_model, datadict, params.communication_rounds, params.num_epochs_local_federation)
-for node in range(params.number_of_nodes):  
-    y_true, y_pred = testmodel(local_model,data_dict['test'], meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
-    calculate_metrics(y_true, y_pred)
-    plot_prediction(y_true, y_pred, data_dict['test_data'], meanstd_dict[params.nodes_to_filter[node]],  window_size =params.window_size , time_point_t=0, node=0)
+    for node in range(params.number_of_nodes):  
+        y_true, y_pred = testmodel(local_model,data_dict['test'], meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
+        if params.print_metrics:
+            print(calculate_metrics(y_true, y_pred))
+        if params.plot : 
+            plot_prediction(y_true, y_pred, data_dict['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=params.time_point_to_plot, node=0, plot_fig_name = f'Federated_{params.num_epochs_local_federation}epochs_node_{node}_round_{params.communication_rounds}' )
 
 
 

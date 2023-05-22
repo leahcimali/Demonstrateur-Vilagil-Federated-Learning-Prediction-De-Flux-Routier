@@ -376,7 +376,7 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
         
     return df_PeMS, adjacency_matrix
 
-def plot_prediction(y_true, y_pred, test_data,meanstd_dict, window_size, time_point_t=0,  node = 0):
+def plot_prediction(y_true, y_pred, test_data,meanstd_dict, window_size, time_point_t=0,  node = 0, plot_fig_name = 'plot.jpg'):
 
     """
     Simple function for a line plot of actual versus prediction values
@@ -398,6 +398,7 @@ def plot_prediction(y_true, y_pred, test_data,meanstd_dict, window_size, time_po
     """
 
     import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
     index = test_data.index
     test_data = test_data* meanstd_dict['std'] + meanstd_dict['mean']
     prediction_horizon = y_true.shape[1]
@@ -409,11 +410,11 @@ def plot_prediction(y_true, y_pred, test_data,meanstd_dict, window_size, time_po
             plt.xlabel('Time')
             plt.ylabel('Value')
             plt.legend()
-            plt.show()
+            
     else:
         window_start = time_point_t
         window_end = time_point_t + window_size
-        plt.figure(figsize=(30, 5))
+        plt.figure(figsize=(20, 9))
         plt.title(f' Actual vs Prediction ')
         # plot y_true as scatter plot with lines
         plt.scatter(index[window_end:window_end+prediction_horizon],y_true[time_point_t,:,node],color='green',label='Actuals')
@@ -426,7 +427,23 @@ def plot_prediction(y_true, y_pred, test_data,meanstd_dict, window_size, time_po
         plt.plot(index[window_start:window_end+1], test_data[window_start:window_end+1], label='y_true')
         plt.axvspan(index[window_start], index[window_end], alpha=0.1, color='gray')
         plt.plot()
+        ax = plt.gca()
         plt.xlabel('Time')
         plt.ylabel('Value')
         plt.legend()
-        plt.show()
+        # Specify the file name and format
+    # Set the properties of the x-axis
+    plt.gca().xaxis.set_major_locator(mdates.MinuteLocator(interval=15))
+    plt.gca().xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+
+    # Customize the x-axis tick labels
+    plt.xticks(rotation=45, ha='right')
+
+    plt.xlabel('Temps (5 minutes intervales)')
+    plt.ylabel('Traffic Flow')
+    plt.title("{} : Prediction for the {}".format(plot_fig_name.split('.')[0], index[window_end].strftime('%Y-%m-%d')), fontsize=18, fontweight='bold')
+    plt.savefig(plot_fig_name)  
+    # Close the plot to free up memory (optional)
+    plt.close()
+

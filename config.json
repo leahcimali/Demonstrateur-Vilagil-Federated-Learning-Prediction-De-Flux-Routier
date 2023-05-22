@@ -7,13 +7,16 @@
     "sort_by_mean": false,
     "nodes_to_filter": [118, 168, 261],
     "number_of_nodes": 3,
-    "window_size": 5,
-    "prediction_horizon": 2,
+    "window_size": 84,
+    "prediction_horizon": 12,
     "stride" : 1,
     "communication_rounds" : 1,
     "num_epochs_local_no_federation": 1,
     "num_epochs_local_federation": 1,
     "learning_rate": 0.001,
-    "model_path" : "./"
+    "model_path" : "./",
+    "plot" : true,
+    "time_point_to_plot":100,
+    "print_metrics" : false    
 }
 
