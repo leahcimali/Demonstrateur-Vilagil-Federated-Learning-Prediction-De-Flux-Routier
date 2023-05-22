@@ -80,7 +80,7 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     if remove:
         os.remove(model_path)
     
-    return best_model, valid_losses, train_losses
+    return best_model, train_losses, valid_losses
 
 
 def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_path, num_epochs, train_loss, epoch):
