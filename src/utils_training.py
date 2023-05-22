@@ -61,7 +61,7 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
 
             for i in range(1, horizon_size):
 
-                outputs = model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
+                outputs = model(torch.cat((inputs[:, i:, :], final_output), dim=1))
                 final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
 
             optimizer.zero_grad()
@@ -125,7 +125,7 @@ def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_
 
             for i in range(1, horizon_size):
 
-                outputs = model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
+                outputs = model(torch.cat((inputs[:, i:, :], final_output), dim=1))
                 final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
 
             optimizer.zero_grad()
@@ -211,7 +211,7 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
             outputs = best_model(inputs.double())
             final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
             for i in range(1, horizon_size):
-                outputs = best_model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
+                outputs = best_model(torch.cat((inputs[:, i:, :], final_output), dim=1))
                 final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
         
             # Save the predictions and actual values for plotting later
