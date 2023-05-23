@@ -285,7 +285,7 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
     return df_PeMS, df_distance
 
 
-def local_dataset(df, nodes, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, prediction_horizon=1, batch_size=32):
+def local_dataset(df, nodes=[], perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, prediction_horizon=1, batch_size=32):
     """
     Create datasets and data loaders for training, validation, and test sets
 
@@ -300,7 +300,7 @@ def local_dataset(df, nodes, perc_train = 0.7, perc_val = 0.15,  window_size = 7
     import pandas as pd
     import warnings
 
-    if nodes == 0 or not (set(nodes).issubset(set(df.columns))):
+    if len(nodes) == 0 or not (set(nodes).issubset(set(df.columns))):
         warnings.warn("Nodes selected not in dataset or empty filter, processing all nodes")
         nodes = df.columns
  
