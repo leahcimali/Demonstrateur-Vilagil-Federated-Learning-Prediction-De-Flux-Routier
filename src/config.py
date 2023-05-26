@@ -63,3 +63,16 @@ def convert_PeMS_to_csv(flow_file= "./../data/PEMS04/PEMS04.npz", csv_file = "./
     df_PeMS.to_csv(csv_file)
 
 
+class Tee:
+    # Class so that the stdout output is saved in a txt file and print at the same time 
+    def __init__(self, *files):
+        self.files = files
+
+    def write(self, text):
+        for file in self.files:
+            file.write(text)
+            file.flush()  # Flush the buffer to ensure immediate writing
+
+    def flush(self):
+        for file in self.files:
+            file.flush()

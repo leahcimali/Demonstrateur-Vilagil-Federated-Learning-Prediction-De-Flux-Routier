@@ -11,6 +11,8 @@ from src.metrics import calculate_metrics
 import src.config
 import sys
 
+import contextlib
+
 
 seed = 42
 torch.manual_seed(seed)
@@ -29,7 +31,7 @@ new_path = '/'.join(path_folder)
 makedirs(new_path, exist_ok=True)
 
 with open(params.save_model_path + 'train.txt', 'w') as f:
-    with contextlib.redirect_stdout(f):
+    with contextlib.redirect_stdout(src.config.Tee(f, sys.stdout)):
 
         module_name = 'src.models'
         class_name = params.model
