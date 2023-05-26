@@ -71,3 +71,51 @@ def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
     
     metric_dict = {"RMSE":rmse_val, "RMSPE": rmspe_val, "MAE":mae_val,"MAPE":mape_val, "MAAPE": maape_val}
     return metric_dict
+
+
+
+def metrics_table(metrics_dict):
+    """
+    Parameters: 
+    -----------
+
+    Parameters
+    ----------
+
+    node : int
+        Node to make a metric table for 
+    metrics_dict : dictionary
+        Dictionary where each key will be the label of the row and
+        the value will be a dictionnary containing metrics 
+    
+    Returns
+    -------
+    Dict :
+        A dictionary with rmse, rmspe, mae, mape and maape values
+    """
+    from tabulate import tabulate
+    combined_results = {}
+    for key, value in metrics_dict.items():
+        combined_results[key] = value
+    table_data = []
+    for key, value in combined_results.items():
+        table_data.append([key, *value.values()])
+
+    headers = ['Method', *combined_results['Local'].keys()]
+    table = tabulate(table_data, headers=headers, tablefmt='grid')
+    print(table)
+
+
+
+def percentage_comparison(y_true,y_pred, y_true_fed, y_pred_fed):
+    local = np.abs(y_true.flatten()-y_pred.flatten())
+    fed = np.abs(y_true_fed.flatten()-y_pred_fed.flatten())
+    comparison = np.less(fed, local).astype(int)
+    fed_better = (comparison.sum()/len(comparison))*100
+    local_better = 100*(len(comparison)-comparison.sum())/len(comparison)
+    print(
+    '''
+    The federated prediction is better {:.2f} % of the time
+    The local prediction is better {:.2f} % of the time
+    '''.format(fed_better,local_better))
+    return fed_better, local_better
