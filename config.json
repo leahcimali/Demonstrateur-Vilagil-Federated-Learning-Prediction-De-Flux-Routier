@@ -7,16 +7,18 @@
     "sort_by_mean": false,
     "nodes_to_filter": [118, 168, 261],
     "number_of_nodes": 3,
-    "window_size": 84,
-    "prediction_horizon": 12,
+    "window_size": 7,
+    "prediction_horizon": 1,
     "stride" : 1,
     "communication_rounds" : 1,
     "num_epochs_local_no_federation": 1,
     "num_epochs_local_federation": 1,
     "learning_rate": 0.001,
     "model_path" : "./",
-    "plot" : true,
+    "plot" : false,
     "time_point_to_plot":100,
-    "print_metrics" : false    
+    "print_metrics" : false,
+    "model": "GRUModel",
+    "save_model_path": "./experiments/"
 }
 
