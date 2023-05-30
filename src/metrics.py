@@ -114,7 +114,7 @@ def metrics_table(metrics_dict):
 
     headers = ['Method', *combined_results['Local'].keys()]
     table = tabulate(table_data, headers=headers, tablefmt='grid')
-    print(table)
+    return table
 
 
 
