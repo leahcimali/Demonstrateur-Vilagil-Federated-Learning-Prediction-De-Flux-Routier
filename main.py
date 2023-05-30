@@ -46,6 +46,8 @@ with open(params.save_model_path + 'train.txt', 'w') as f:
 
         #Load traffic flow dataframe and graph dataframe from PEMS
         df_PeMS, distance = load_PeMS04_flow_data()
+        df_PeMS = df_PeMS[:int(len(df_PeMS)*params.time_serie_percentage_length)]
+        print(len(df_PeMS))
         df_PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(df_PeMS, distance, params.init_node, params.n_neighbours,
                                                             params.smooth, params.center_and_reduce,
                                                             params.normalize, params.sort_by_mean)

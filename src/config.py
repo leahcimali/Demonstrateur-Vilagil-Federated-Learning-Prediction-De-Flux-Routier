@@ -10,7 +10,7 @@ class Params():
         with open(config_file_path) as f:
             
             config = json.load(f)
-
+            self.time_serie_percentage_length = config["time_serie_percentage_length"]
             self.init_node = config['init_node']
             self.n_neighbours = config['n_neighbours']
             self.smooth = config['smooth']

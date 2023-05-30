@@ -1,4 +1,5 @@
 {
+    "time_serie_percentage_length":0.25,
     "init_node": 0,
     "n_neighbours": 99,
     "smooth": true,
@@ -7,18 +8,17 @@
     "sort_by_mean": false,
     "nodes_to_filter": [118, 168, 261],
     "number_of_nodes": 3,
-    "window_size": 7,
-    "prediction_horizon": 1,
+    "window_size": 84,
+    "prediction_horizon": 12,
     "stride" : 1,
-    "communication_rounds" : 1,
-    "num_epochs_local_no_federation": 1,
-    "num_epochs_local_federation": 1,
+    "communication_rounds" : 200,
+    "num_epochs_local_no_federation": 200,
+    "num_epochs_local_federation": 10,
     "learning_rate": 0.001,
-    "model_path" : "./",
     "plot" : false,
     "time_point_to_plot":100,
     "print_metrics" : false,
     "model": "GRUModel",
-    "save_model_path": "./experiments/"
+    "save_model_path": ".model/experiments/"
 }
 
