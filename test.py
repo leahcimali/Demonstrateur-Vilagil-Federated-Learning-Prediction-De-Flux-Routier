@@ -56,20 +56,22 @@ with open(params.save_model_path +'test.txt', 'w') as f:
         metrics_dict ={}
         for node in range(len(params.nodes_to_filter)):
             metrics_dict[node]={}
-            y_true, y_pred = testmodel(model(1,32,1), datadict[node]['val'], f'{params.save_model_path}local{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])  
+            y_true, y_pred = testmodel(model(1,32,1), datadict[node]['test'], f'{params.save_model_path}local{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])  
             local_metrics = calculate_metrics(y_true, y_pred)
             metrics_dict[node]['local_only'] = local_metrics
-            for round in range(1, params.communication_rounds+1):
-                y_true_fed, y_pred_fed = testmodel(model(1,32,1), datadict[node]['val'], f'{params.save_model_path}model_round_{round}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
-                fed_metric = calculate_metrics(y_true_fed, y_pred_fed)
-                metrics_dict[node][f'fed_round_{round}'] = fed_metric
-                print(f'Federated vs local only for node {node} :')
-                print(metrics_table({'Local' :local_metrics, f'Federated Round {round}' : fed_metric }))
+
+            y_true_fed, y_pred_fed = testmodel(model(1,32,1), datadict[node]['test'], f'{params.save_model_path}bestmodel_node{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
+            fed_metric = calculate_metrics(y_true_fed, y_pred_fed)
+            metrics_dict[node][f'fed_round_{round}'] = fed_metric
+            print(f'Federated vs local only for node {node} :')
+            print(metrics_table({'Local' :local_metrics, f'Federated' : fed_metric }))
 
 with open(params.save_model_path + "test.json", "w") as outfile:
     json.dump(metrics_dict, outfile)
 
-
+for node in range(params.number_of_nodes):  
+                if params.plot : 
+                    plot_prediction(y_true, y_pred, datadict['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=params.time_point_to_plot, node=0, plot_fig_name = f'Federated_{params.num_epochs_local_federation}epochs_node_{node}_round_{params.communication_rounds}' )
 
 
 

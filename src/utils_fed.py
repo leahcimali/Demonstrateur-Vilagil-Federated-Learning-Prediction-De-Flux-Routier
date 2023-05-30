@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 
 from src.utils_training import train_model
-
+from sklearn.metrics import  mean_squared_error
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -95,30 +95,41 @@ def fed_training_plan(main_model, data_dict, rounds=3, epoch=200, model_path= '.
         Define the path where to save the models 
     
     """
-    
+    from src.utils_training import testmodel
     nodes = len(data_dict)
     
     model_dict = setup_models(nodes,main_model)
-    
+    best_node_loss = [float('inf') for i in range(nodes)]
+    node_loss = [0 for i in range(nodes)]
+    best_model_round = [0 for i in range(nodes)]
     for round in range(1,rounds+1):
     
         print('Init round {} :'.format(round))
     
         model_dict = send_model(main_model, model_dict, nodes)
     
-        for i in range(nodes):
-            print('Training node {} for round {}'.format(i, round))
-            model_dict[i], _ , _ = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'{model_path}local{i}_round{round}.pth', epoch, remove = True)
+        for node in range(nodes):
+            print('Training node {} for round {}'.format(node, round))
+            model_dict[node], _ , _ = train_model(model_dict[node], data_dict[node]['train'], data_dict[node]['val'], f'{model_path}local{node}_round{round}.pth', epoch, remove = True)
     
         print('FedAVG for round {}:'.format(round))
     
         main_model = fedavg(main_model, model_dict, nodes)
-    
+        for node in range(nodes):
+            y_true, y_pred = testmodel(main_model, data_dict[node]["val"])
+            node_loss[node]= mean_squared_error(y_true.flatten(),y_pred.flatten())
+            print(f"Node {node} Validation loss :{node_loss[node]:.4f}")
+            if node_loss[node]< best_node_loss[node] :
+                best_node_loss[node] = node_loss[node]
+                best_model_round[node] = round 
+                print(f'Better model founded at round {round} for node {node}!')
+                torch.save(main_model.state_dict(), f'{model_path}bestmodel_node{node}.pth')
         print('Done')
-        torch.save(main_model.state_dict(), f'{model_path}model_round_{round}.pth')
-    
+        # torch.save(main_model.state_dict(), f'{model_path}model_round_{round}.pth')
     print("FedAvg All Rounds Complete !")
-    return main_model
+    for node in range(nodes):
+        print(f"Best model for node {node} at round {best_model_round[node]}.")
+    # return main_model
 
 
 
