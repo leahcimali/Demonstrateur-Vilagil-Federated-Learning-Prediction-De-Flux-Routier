@@ -28,7 +28,6 @@ class Params():
             self.learning_rate = config['learning_rate']
             self.plot = config['plot']
             self.time_point_to_plot = config['time_point_to_plot']
-            self.print_metrics = config["print_metrics"]  
             self.model = config["model"]
             self.save_model_path = config["save_model_path"]
 

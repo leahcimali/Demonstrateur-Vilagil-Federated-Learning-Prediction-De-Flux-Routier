@@ -15,10 +15,9 @@
     "num_epochs_local_no_federation": 200,
     "num_epochs_local_federation": 10,
     "learning_rate": 0.001,
-    "plot" : false,
+    "plot" : true,
     "time_point_to_plot":100,
-    "print_metrics" : false,
     "model": "GRUModel",
-    "save_model_path": ".model/experiments/"
+    "save_model_path": "./model/experiments/"
 }
 

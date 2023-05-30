@@ -32,7 +32,18 @@ def rmsse(y_true, y_pred):
 
     return rmsse
 
-
+def Percentage_of_Superior_Predictions(y_true,y_pred,y_true_fed, y_pred_fed):
+    local = np.abs(y_true.flatten()-y_pred.flatten())
+    fed = np.abs(y_true_fed.flatten()-y_pred_fed.flatten())
+    comparison = np.less(fed, local).astype(int)
+    fed_better = (comparison.sum()/len(comparison))*100
+    local_better = 100*(len(comparison)-comparison.sum())/len(comparison)
+    print(
+    '''
+    The federated prediction is better {:.2f} % of the time
+    The local prediction is better {:.2f} % of the time
+    '''.format(fed_better, local_better))
+    return fed_better, local_better
 
 def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
     from src.metrics import rmse, rmspe, maape, mape 
