@@ -75,16 +75,6 @@ def plot_slider(experiment_path):
         fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
         return fig
 
-    def plot_box_plot(color, label, title, y_pred, i):
-        df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
-        df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
-        df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
-        df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
-        fig = px.box(df, y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), color_discrete_sequence=['black'])
-        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
-        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
-        return fig
-
     # FEDERATED
     fed_fig = plot_prediction_graph('green', 'Federated', "Federated Prediction", y_pred_fed, slider)
     
