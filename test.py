@@ -73,7 +73,7 @@ with open(params.save_model_path +'test.txt', 'w') as f:
             numpy.save(f'{params.save_model_path}y_true_fed_{node}', y_true_fed)
             numpy.save(f'{params.save_model_path}y_pred_fed_{node}', y_pred_fed)
             print(f'Federated vs local only for node {node} :')
-            fed_metrics['Superior Pred %'], local_metrics['Superior Pred % '] = Percentage_of_Superior_Predictions(y_true, y_pred, y_true_fed, y_pred_fed)
+            fed_metrics['Superior Pred %'], local_metrics['Superior Pred %'] = Percentage_of_Superior_Predictions(y_true, y_pred, y_true_fed, y_pred_fed)
             print(metrics_table({'Local' :local_metrics, f'Federated' : fed_metrics }))
             if params.plot : 
                     plot_prediction(y_true, y_pred, datadict[node]['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=params.time_point_to_plot, node=0, plot_fig_name = f'Localmodel_{params.num_epochs_local_no_federation}epochs_node_{node}' )
