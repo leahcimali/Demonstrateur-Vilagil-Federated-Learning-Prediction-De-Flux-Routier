@@ -183,7 +183,7 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
 
 
     metrics = list(results[mapping_captor_with_nodes[captor]]["local_only"].keys())
-    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, metrics)
+    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
 
 
     local_node = []
@@ -196,6 +196,7 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         federated_node = results[mapping_captor_with_nodes[captor]]["Federated"]
         federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["Captor in Federation"])
 
+    st.subheader("Captor in Federation vs Captor alone")
     st.dataframe(pd.concat((federated_node, local_node), axis=0), use_container_width=True)
 
 

@@ -3,6 +3,7 @@
 ###############################################################################
 from os import path
 
+
 import glob
 import json
 import streamlit as st
@@ -10,7 +11,6 @@ st.set_page_config(layout="wide")
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 
 
 from src.metrics import rmse
@@ -50,8 +50,6 @@ def load_numpy(path):
 
 
 def plot_slider(experiment_path):
-    test_set = load_numpy(f"{params.save_model_path}/test_data_{mapping_captor_with_nodes[captor]}.npy")
-
     y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_captor_with_nodes[captor]}.npy")
     y_pred = load_numpy(f"{experiment_path}/y_pred_local_{mapping_captor_with_nodes[captor]}.npy")
     y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_captor_with_nodes[captor]}.npy")
@@ -182,24 +180,25 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     for node in results.keys():
         mapping_captor_with_nodes[config["nodes_to_filter"][int(node)]] = node
 
-
     captor = st.selectbox('Choose the captor', mapping_captor_with_nodes.keys())
 
 
     metrics = list(results[mapping_captor_with_nodes[captor]]["local_only"].keys())
-    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, metrics)
+    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
 
-
-    local_node = []
-    if "local_only" in results[mapping_captor_with_nodes[captor]].keys():
-        local_node = results[mapping_captor_with_nodes[captor]]["local_only"]
-        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["Captor alone"])
 
     federated_node = []
     if "Federated" in results[mapping_captor_with_nodes[captor]].keys():
         federated_node = results[mapping_captor_with_nodes[captor]]["Federated"]
         federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["Captor in Federation"])
 
+    local_node = []
+    if "local_only" in results[mapping_captor_with_nodes[captor]].keys():
+        local_node = results[mapping_captor_with_nodes[captor]]["local_only"]
+        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["Captor alone"])
+
+
+    st.subheader("Captor in Federation vs Captor alone")
     st.dataframe(pd.concat((federated_node, local_node), axis=0), use_container_width=True)
 
 
