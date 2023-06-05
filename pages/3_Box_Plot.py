@@ -57,8 +57,8 @@ def plot_slider(experiment_path):
     index = load_numpy(f"{params.save_model_path}/index_{mapping_captor_with_nodes[captor]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
     
-    def plot_box_plot(color, label, title, y_pred, y_true):
-        fig = px.box(y=(np.abs(y_pred.flatten() - y_true.flatten())), color_discrete_sequence=['grey'], title=title, points="suspectedoutliers")
+    def plot_box(title, mae, max_y_value, color):
+        fig = px.box(y=mae, color_discrete_sequence=[color], title=title, points=False)
         fig.update_layout(
         title={
             'text': f"{title} Absolute error",
@@ -68,24 +68,31 @@ def plot_slider(experiment_path):
             'yanchor': 'top'},
         xaxis_title=f"captor {captor}",
         yaxis_title="Trafic flow (absolute error)",
+        yaxis=dict(range=[0, max_y_value]),
         font=dict(
             size=28,
             color="#7f7f7f"
-        ),
-        width=500,
-        height=800
+        ), height=900, width=250
         )
         return fig
 
-    # FEDERATED
-    fed_fig = plot_box_plot('green', 'Federated Prediction', "Federated Prediction", y_pred_fed, y_true)
+    mae_fed = (np.abs(y_pred_fed.flatten() - y_true.flatten()))
+    mae_local = (np.abs(y_pred.flatten() - y_true.flatten()))
     
+    max_y_value = max(max(mae_fed), max(mae_local))
+    
+    # FEDERATED
+    fed_fig = plot_box("Federated Prediction", mae_fed, max_y_value, 'green')
+
     # LOCAL
-    local_fig = plot_box_plot('red', 'Local Prediction', "Local Prediction", y_pred, y_true)
+    local_fig = plot_box("Local Prediction", mae_local, max_y_value, 'red')
     
     with st.spinner('Plotting...'):
-        st.plotly_chart(fed_fig, use_container_width=True)
-        st.plotly_chart(local_fig, use_container_width=True)
+        _, c2_fed_fig, c3_local_fig, _ = st.columns((1,1,1,1))
+        with c2_fed_fig:
+            st.plotly_chart(fed_fig, use_container_width=False)
+        with c3_local_fig:
+            st.plotly_chart(local_fig, use_container_width=False)
 
 
 
