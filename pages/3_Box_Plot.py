@@ -57,8 +57,8 @@ def plot_slider(experiment_path):
     index = load_numpy(f"{params.save_model_path}/index_{mapping_captor_with_nodes[captor]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
     
-    def plot_box(title, mae, max_y_value, color):
-        fig = px.box(y=mae, color_discrete_sequence=[color], title=title, points=False)
+    def plot_box(title, ae, max_y_value, color):
+        fig = px.box(y=ae, color_discrete_sequence=[color], title=title, points="suspectedoutliers")
         fig.update_layout(
         title={
             'text': f"{title} Absolute error",
@@ -76,17 +76,17 @@ def plot_slider(experiment_path):
         )
         return fig
 
-    mae_fed = (np.abs(y_pred_fed.flatten() - y_true.flatten()))
-    mae_local = (np.abs(y_pred.flatten() - y_true.flatten()))
-    
-    max_y_value = max(max(mae_fed), max(mae_local))
-    
+    ae_fed = (np.abs(y_pred_fed.flatten() - y_true.flatten()))
+    ae_local = (np.abs(y_pred.flatten() - y_true.flatten()))
+
+    max_y_value = max(max(ae_fed), max(ae_local))
+
     # FEDERATED
-    fed_fig = plot_box("Federated Prediction", mae_fed, max_y_value, 'green')
+    fed_fig = plot_box("Federated Prediction", ae_fed, max_y_value, 'green')
 
     # LOCAL
-    local_fig = plot_box("Local Prediction", mae_local, max_y_value, 'red')
-    
+    local_fig = plot_box("Local Prediction", ae_local, max_y_value, 'red')
+
     with st.spinner('Plotting...'):
         _, c2_fed_fig, c3_local_fig, _ = st.columns((1,1,1,1))
         with c2_fed_fig:
@@ -107,7 +107,7 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
             The path to the config.json of all experiments
         params_config_use_for_select :
             The parameters use for the selection
-            
+
     Returns:
         The mapping between path to the experiments and parameters of the experiements
         exemple :
@@ -146,7 +146,7 @@ def selection_of_experiment(possible_choice):
     
     models_filtered = filtering_path_file(possible_choice["model"], horizon_filtered[horizon_size])
     model = st.selectbox('Choose the model', models_filtered.keys())
-    
+
     if(len(models_filtered[model]) > 1):
         st.write("TODO : WARNING ! More than one results correspond to your research pick only one (see below)")
         select_exp = st.selectbox("Choose", models_filtered[model])
@@ -207,8 +207,7 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
 
     st.subheader("Captor in Federation vs Captor alone")
     st.dataframe(pd.concat((federated_node, local_node), axis=0), use_container_width=True)
-
-
+    
     params = Params(f'{path_experiment_selected}/config.json')
     if (path.exists(f'{params.save_model_path}y_true_local_{mapping_captor_with_nodes[captor]}.npy') and
         path.exists(f"{path_experiment_selected}/y_pred_fed_{mapping_captor_with_nodes[captor]}.npy")):
