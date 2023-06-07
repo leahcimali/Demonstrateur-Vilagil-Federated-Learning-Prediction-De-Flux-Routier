@@ -13,8 +13,7 @@ import numpy as np
 import plotly.express as px
 
 
-from src.metrics import rmse
-from src.config import Params
+from config import Params
 
 
 @st.cache_data
@@ -53,10 +52,10 @@ def plot_slider(experiment_path):
     y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_captor_with_nodes[captor]}.npy")
     y_pred = load_numpy(f"{experiment_path}/y_pred_local_{mapping_captor_with_nodes[captor]}.npy")
     y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_captor_with_nodes[captor]}.npy")
-    
+
     index = load_numpy(f"{params.save_model_path}/index_{mapping_captor_with_nodes[captor]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
-    
+
     def plot_box(title, ae, max_y_value, color):
         fig = px.box(y=ae, color_discrete_sequence=[color], title=title, points="outliers")
         fig.update_layout(
@@ -105,7 +104,7 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
 
     Parameters:
     -----------
-        path_files : 
+        path_files :
             The path to the config.json of all experiments
         params_config_use_for_select :
             The parameters use for the selection
@@ -139,16 +138,16 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
 
 def selection_of_experiment(possible_choice):
     time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
-    
+
     nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
     nb_captor = st.selectbox('Choose the number of captor', nb_captor_filtered.keys())
 
     windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
     window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys())
-        
+
     horizon_filtered = filtering_path_file(possible_choice["prediction_horizon"], windows_size_filtered[window_size])
     horizon_size = st.selectbox('Choose the prediction horizon', horizon_filtered.keys())
-    
+
     models_filtered = filtering_path_file(possible_choice["model"], horizon_filtered[horizon_size])
     model = st.selectbox('Choose the model', models_filtered.keys())
 
@@ -157,10 +156,10 @@ def selection_of_experiment(possible_choice):
         select_exp = st.selectbox("Choose", models_filtered[model])
         select_exp = models_filtered[model].index(select_exp)
         experiment_path = ("\\".join(models_filtered[model][select_exp].split("\\")[:-1]))
-        
+
     else:
         experiment_path = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
-    
+
     return experiment_path
 
 
@@ -172,7 +171,7 @@ st.header("Box Plot")
 
 experiments = "experiments" # PATH where your experiments are saved
 if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
-    
+
     params_config_use_for_select = \
     [
         "time_serie_percentage_length",
@@ -195,19 +194,13 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     for node in results.keys():
         mapping_captor_with_nodes[config["nodes_to_filter"][int(node)]] = node
 
-    captor = st.selectbox('Choose the captor', mapping_captor_with_nodes.keys())
-
+    if 'captor' not in st.session_state:
+        st.session_state['captor'] = 0
+    captor = st.selectbox('Choose the captor', mapping_captor_with_nodes.keys(), index=st.session_state['captor'])
+    st.session_state['captor'] = int(mapping_captor_with_nodes[captor])
 
     metrics = list(results[mapping_captor_with_nodes[captor]]["local_only"].keys())
     multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
-
-    def highlight_col(x):
-        if x.name in ["RMSE"]:
-            return ['background-color: #67c5a4']*x.shape[0]
-        elif x.name in ["MAE"]:
-            return ['background-color: #ff9090']*x.shape[0]
-        else:
-            return ['background-color: None']*x.shape[0]
 
 
     federated_node = []
@@ -223,8 +216,8 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
 
     st.subheader("Captor in Federation vs Captor alone")
     fed_local_node = pd.concat((federated_node, local_node), axis=0)
-    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]))
-    
+    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
+
     params = Params(f'{path_experiment_selected}/config.json')
     if (path.exists(f'{params.save_model_path}y_true_local_{mapping_captor_with_nodes[captor]}.npy') and
         path.exists(f"{path_experiment_selected}/y_pred_fed_{mapping_captor_with_nodes[captor]}.npy")):

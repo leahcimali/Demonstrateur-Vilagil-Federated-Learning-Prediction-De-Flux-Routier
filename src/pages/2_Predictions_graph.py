@@ -1,15 +1,22 @@
 ###############################################################################
 # Libraries
 ###############################################################################
-import glob
+from os import path
 
+import glob
 import json
 import streamlit as st
 st.set_page_config(layout="wide")
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import plotly.express as px
 
+
+from metrics import rmse
+from config import Params
+
+
+@st.cache_data
 def filtering_path_file(file_dict, filter_list):
     """
     Returns a new dictionary that contains only the files that are in the filter list.
@@ -35,6 +42,48 @@ def filtering_path_file(file_dict, filter_list):
                 else:
                     filtered_file_dict[key] = [file]
     return filtered_file_dict
+
+@st.cache_data
+def load_numpy(path):
+    return np.load(path)
+
+
+def plot_slider(experiment_path):
+    test_set = load_numpy(f"{params.save_model_path}/test_data_{mapping_captor_with_nodes[captor]}.npy")
+
+    y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_captor_with_nodes[captor]}.npy")
+    y_pred = load_numpy(f"{experiment_path}/y_pred_local_{mapping_captor_with_nodes[captor]}.npy")
+    y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_captor_with_nodes[captor]}.npy")
+    
+    index = load_numpy(f"{params.save_model_path}/index_{mapping_captor_with_nodes[captor]}.npy")
+    index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
+    
+    slider = st.slider('Select time?', 0, len(index)-params.prediction_horizon-params.window_size, params.prediction_horizon)
+
+    def plot_prediction_graph(color, label, title, y_pred, i):
+        df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
+        df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
+        df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
+        df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
+        fig = px.line(df, x='Time', y=["Window"], color_discrete_sequence=['black'])
+        fig.add_scatter(x=df['Time'], y=df['y_true'], mode='markers+lines', marker=dict(color='blue'), name='y_true')
+        fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse(y_true[i, :].flatten(), y_pred[i, :].flatten()):.2f}')
+        fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error')
+        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
+        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
+        fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
+        return fig
+
+    # FEDERATED
+    fed_fig = plot_prediction_graph('green', 'Federated', "Federated Prediction", y_pred_fed, slider)
+    
+    # LOCAL
+    local_fig = plot_prediction_graph('red', 'Local', "Local Prediction", y_pred, slider)
+    
+    with st.spinner('Plotting...'):
+        st.plotly_chart(fed_fig, use_container_width=True)
+        st.plotly_chart(local_fig, use_container_width=True)
+
 
 
 @st.cache_data
@@ -76,7 +125,6 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
                 mapping_path_with_param[param][config[param]] = [file]
     return mapping_path_with_param
 
-
 def selection_of_experiment(possible_choice):
     time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
     
@@ -103,14 +151,16 @@ def selection_of_experiment(possible_choice):
     
     return experiment_path
 
+
+
 #######################################################################
 # Main
 #######################################################################
-st.header("General Statistics")
+st.header("Predictions Graph")
 
-experiments = "experiments"
+experiments = "experiments" # PATH where your experiments are saved
 if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
-
+    
     params_config_use_for_select = \
     [
         "time_serie_percentage_length",
@@ -129,29 +179,36 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         config = json.load(f)
 
 
-    nodes = results.keys()
-    mapping_captor_and_node = {}
+    mapping_captor_with_nodes = {}
     for node in results.keys():
-        mapping_captor_and_node[config["nodes_to_filter"][int(node)]] = node
-    
-    df_federated_node = []
-    for captor in mapping_captor_and_node.keys():
-        if "Federated" in results[mapping_captor_and_node[captor]].keys():
-            federated_node = results[mapping_captor_and_node[captor]]["Federated"]
-            df_federated_node.append(federated_node)
-    
-    if df_federated_node != []:
-        st.subheader("How much the Federated version is performant on average taking in account all the captors for the calculation of the statistics")
-        df_federated_node = pd.DataFrame(df_federated_node)
-        global_stats_fed_ver = df_federated_node.describe().T
-        global_stats_fed_ver.rename(columns={'count': 'Nb captors'}, inplace=True)
-        st.table(global_stats_fed_ver.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]))
-        
-        c1_boxplot_fed, c2_bobxplot_fed, c3_boxplot_fed = st.columns((1,2,1))
-        st.subheader(f'Box plot of RMSE values for captor {captor}')
-        fig, ax = plt.subplots()
-        bar_plot_results = df_federated_node
-        bar_plot_results.boxplot(column=["RMSE", "MAE"], ylabel="values", xlabel="Captor", ax=ax)
-        plt.yticks(np.arange(0, max(bar_plot_results["RMSE"].max(), bar_plot_results["MAE"].max()), 10))
-        with c2_bobxplot_fed:
-            st.pyplot(fig, use_container_width=True)
+        mapping_captor_with_nodes[config["nodes_to_filter"][int(node)]] = node
+
+
+    if 'captor' not in st.session_state:
+        st.session_state['captor'] = 0
+    captor = st.selectbox('Choose the captor', mapping_captor_with_nodes.keys(), index=st.session_state['captor'])
+    st.session_state['captor'] = int(mapping_captor_with_nodes[captor])
+
+    metrics = list(results[mapping_captor_with_nodes[captor]]["local_only"].keys())
+    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
+
+    local_node = []
+    if "local_only" in results[mapping_captor_with_nodes[captor]].keys():
+        local_node = results[mapping_captor_with_nodes[captor]]["local_only"]
+        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["Captor alone"])
+
+    federated_node = []
+    if "Federated" in results[mapping_captor_with_nodes[captor]].keys():
+        federated_node = results[mapping_captor_with_nodes[captor]]["Federated"]
+        federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["Captor in Federation"])
+
+
+    st.subheader("Captor in Federation vs Captor alone")
+    fed_local_node = pd.concat((federated_node, local_node), axis=0)
+    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
+
+
+    params = Params(f'{path_experiment_selected}/config.json')
+    if (path.exists(f'{params.save_model_path}y_true_local_{mapping_captor_with_nodes[captor]}.npy') and
+        path.exists(f"{path_experiment_selected}/y_pred_fed_{mapping_captor_with_nodes[captor]}.npy")):
+        plot_slider(path_experiment_selected)
