@@ -37,75 +37,102 @@ def filtering_path_file(file_dict, filter_list):
     return filtered_file_dict
 
 
-key_config_json = \
-[
-    "number_of_nodes",
-    "window_size",
-    "prediction_horizon",
-    "model"
-]
+@st.cache_data
+def map_path_experiments_to_params(path_files, params_config_use_for_select):
+    """
+    Map all path experiments with parameters of their config.json
 
-user_selection = \
-{
-    "nb_captors": {},
-    "windows_size": {},
-    "predictions_horizon": {},
-    "models": {}
-}
-
-#######################################################################
-# Loading Data
-#######################################################################
-experiments = "experiments"
-if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
-    for file in files:
-        with open(file) as f:
-            config_json = json.load(f)
-        for key_config, selection in zip(key_config_json, user_selection):
-            if config_json[key_config] in user_selection[selection]:
-                user_selection[selection][config_json[key_config]].append(file)
+    Parameters:
+    -----------
+        path_files : 
+            The path to the config.json of all experiments
+        params_config_use_for_select :
+            The parameters use for the selection
+            
+    Returns:
+        The mapping between path to the experiments and parameters of the experiements
+        exemple :
+        mapping = {
+            "nb_node" : {
+                3: [path_1, path_3],
+                4: [path_4]
+            },
+            windows_size: {
+                1: [path_1],
+                5: [path_3],
+                8: [path_4]
+            }
+        }
+    """
+    mapping_path_with_param = {}
+    for param in params_config_use_for_select:
+        mapping_path_with_param[param] = {}
+        for file in path_files:
+            with open(file) as f:
+                config = json.load(f)
+            if config[param] in mapping_path_with_param[param].keys():
+                mapping_path_with_param[param][config[param]].append(file)
             else:
-                user_selection[selection][config_json[key_config]] = [file]
-                
-    nb_captor = st.selectbox('Choose the number of captor', user_selection["nb_captors"].keys())
+                mapping_path_with_param[param][config[param]] = [file]
+    return mapping_path_with_param
 
-    windows_size_filtered = filtering_path_file(user_selection["windows_size"], user_selection["nb_captors"][nb_captor])
+
+def selection_of_experiment(possible_choice):
+    time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
+    
+    nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
+    nb_captor = st.selectbox('Choose the number of captor', nb_captor_filtered.keys())
+
+    windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
     window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys())
         
-    horizon_filtered = filtering_path_file(user_selection["predictions_horizon"], windows_size_filtered[window_size])
+    horizon_filtered = filtering_path_file(possible_choice["prediction_horizon"], windows_size_filtered[window_size])
     horizon_size = st.selectbox('Choose the prediction horizon', horizon_filtered.keys())
     
-    models_filtered = filtering_path_file(user_selection["models"], horizon_filtered[horizon_size])
+    models_filtered = filtering_path_file(possible_choice["model"], horizon_filtered[horizon_size])
     model = st.selectbox('Choose the model', models_filtered.keys())
-
+    
     if(len(models_filtered[model]) > 1):
         st.write("TODO : WARNING ! More than one results correspond to your research pick only one (see below)")
         select_exp = st.selectbox("Choose", models_filtered[model])
         select_exp = models_filtered[model].index(select_exp)
-        path_results = ("\\".join(models_filtered[model][select_exp].split("\\")[:-1]))
+        experiment_path = ("\\".join(models_filtered[model][select_exp].split("\\")[:-1]))
         
     else:
-        path_results = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
-        
-    with open(f"{path_results}/test.json") as f:
-        results = json.load(f)
+        experiment_path = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
     
-    def dataframe_results(dict_results, node):
-        results = []
-        captors = []
-        for key in dict_results[node].keys():
-            results.append(dict_results[node][key])
-            captors.append(config_json["nodes_to_filter"][int(node)])
+    return experiment_path
 
-        df = pd.DataFrame(results)
-        df.insert(0, "Captor", captors, True)
-        df = df.set_index("Captor")
-        return df
+#######################################################################
+# Main
+#######################################################################
+st.header("General Statistics")
+
+experiments = "experiments"
+if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
+
+    params_config_use_for_select = \
+    [
+        "time_serie_percentage_length",
+        "number_of_nodes",
+        "window_size",
+        "prediction_horizon",
+        "model"
+    ]
+    user_selection = map_path_experiments_to_params(path_files, params_config_use_for_select)
+
+    path_experiment_selected = selection_of_experiment(user_selection)
+
+    with open(f"{path_experiment_selected}/test.json") as f:
+        results = json.load(f)
+    with open(f"{path_experiment_selected}/config.json") as f:
+        config = json.load(f)
+
 
     nodes = results.keys()
     mapping_captor_and_node = {}
     for node in results.keys():
-        mapping_captor_and_node[config_json["nodes_to_filter"][int(node)]] = node
+        mapping_captor_and_node[config["nodes_to_filter"][int(node)]] = node
     
     df_federated_node = []
     for captor in mapping_captor_and_node.keys():
@@ -118,7 +145,7 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         df_federated_node = pd.DataFrame(df_federated_node)
         global_stats_fed_ver = df_federated_node.describe().T
         global_stats_fed_ver.rename(columns={'count': 'Nb captors'}, inplace=True)
-        st.dataframe(global_stats_fed_ver, use_container_width=True)
+        st.table(global_stats_fed_ver.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]))
         
         c1_boxplot_fed, c2_bobxplot_fed, c3_boxplot_fed = st.columns((1,2,1))
         st.subheader(f'Box plot of RMSE values for captor {captor}')

@@ -127,7 +127,10 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
     return mapping_path_with_param
 
 def selection_of_experiment(possible_choice):
-    nb_captor = st.selectbox('Choose the number of captor', possible_choice["number_of_nodes"].keys())
+    time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
+    
+    nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
+    nb_captor = st.selectbox('Choose the number of captor', nb_captor_filtered.keys())
 
     windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
     window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys())
@@ -154,11 +157,14 @@ def selection_of_experiment(possible_choice):
 #######################################################################
 # Main
 #######################################################################
+st.header("Predictions Graph")
+
 experiments = "experiments" # PATH where your experiments are saved
 if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     
     params_config_use_for_select = \
     [
+        "time_serie_percentage_length",
         "number_of_nodes",
         "window_size",
         "prediction_horizon",
@@ -185,7 +191,6 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     metrics = list(results[mapping_captor_with_nodes[captor]]["local_only"].keys())
     multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
 
-
     local_node = []
     if "local_only" in results[mapping_captor_with_nodes[captor]].keys():
         local_node = results[mapping_captor_with_nodes[captor]]["local_only"]
@@ -196,8 +201,10 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         federated_node = results[mapping_captor_with_nodes[captor]]["Federated"]
         federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["Captor in Federation"])
 
+
     st.subheader("Captor in Federation vs Captor alone")
-    st.dataframe(pd.concat((federated_node, local_node), axis=0), use_container_width=True)
+    fed_local_node = pd.concat((federated_node, local_node), axis=0)
+    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]))
 
 
     params = Params(f'{path_experiment_selected}/config.json')

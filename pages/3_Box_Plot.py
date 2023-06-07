@@ -58,10 +58,10 @@ def plot_slider(experiment_path):
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
     
     def plot_box(title, ae, max_y_value, color):
-        fig = px.box(y=ae, color_discrete_sequence=[color], title=title, points="suspectedoutliers")
+        fig = px.box(y=ae, color_discrete_sequence=[color], title=title, points="outliers")
         fig.update_layout(
         title={
-            'text': f"{title} Absolute error",
+            'text': f"{title}",
             'y':0.95,
             'x':0.5,
             'xanchor': 'center',
@@ -85,9 +85,11 @@ def plot_slider(experiment_path):
     fed_fig = plot_box("Federated Prediction", ae_fed, max_y_value, 'green')
 
     # LOCAL
-    local_fig = plot_box("Local Prediction", ae_local, max_y_value, 'red')
+    local_fig = plot_box("Alone Prediction", ae_local, max_y_value, 'red')
+
 
     with st.spinner('Plotting...'):
+        st.subheader(f"Comparison between Federation and local version on captor {captor} (Absolute Error)")
         _, c2_fed_fig, c3_local_fig, _ = st.columns((1,1,1,1))
         with c2_fed_fig:
             st.plotly_chart(fed_fig, use_container_width=False)
@@ -136,7 +138,10 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
     return mapping_path_with_param
 
 def selection_of_experiment(possible_choice):
-    nb_captor = st.selectbox('Choose the number of captor', possible_choice["number_of_nodes"].keys())
+    time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
+    
+    nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
+    nb_captor = st.selectbox('Choose the number of captor', nb_captor_filtered.keys())
 
     windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
     window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys())
@@ -163,11 +168,14 @@ def selection_of_experiment(possible_choice):
 #######################################################################
 # Main
 #######################################################################
+st.header("Box Plot")
+
 experiments = "experiments" # PATH where your experiments are saved
 if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     
     params_config_use_for_select = \
     [
+        "time_serie_percentage_length",
         "number_of_nodes",
         "window_size",
         "prediction_horizon",
@@ -193,6 +201,14 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     metrics = list(results[mapping_captor_with_nodes[captor]]["local_only"].keys())
     multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
 
+    def highlight_col(x):
+        if x.name in ["RMSE"]:
+            return ['background-color: #67c5a4']*x.shape[0]
+        elif x.name in ["MAE"]:
+            return ['background-color: #ff9090']*x.shape[0]
+        else:
+            return ['background-color: None']*x.shape[0]
+
 
     federated_node = []
     if "Federated" in results[mapping_captor_with_nodes[captor]].keys():
@@ -206,7 +222,8 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
 
 
     st.subheader("Captor in Federation vs Captor alone")
-    st.dataframe(pd.concat((federated_node, local_node), axis=0), use_container_width=True)
+    fed_local_node = pd.concat((federated_node, local_node), axis=0)
+    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]))
     
     params = Params(f'{path_experiment_selected}/config.json')
     if (path.exists(f'{params.save_model_path}y_true_local_{mapping_captor_with_nodes[captor]}.npy') and

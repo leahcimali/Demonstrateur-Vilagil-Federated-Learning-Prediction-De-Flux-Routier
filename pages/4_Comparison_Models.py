@@ -57,11 +57,11 @@ def plot_slider(experiment_path):
     ae_model_1 = compute_absolute_error(experiment_path[0])
     ae_model_2 = compute_absolute_error(experiment_path[1])
     
-    def plot_box(title, mae, max_y_value, color):
-        fig = px.box(y=mae, color_discrete_sequence=[color], title=title, points=False)
+    def plot_box(title, ae, max_y_value, color):
+        fig = px.box(y=ae, color_discrete_sequence=[color], title=title, points="suspectedoutliers")
         fig.update_layout(
         title={
-            'text': f"{title} Absolute error",
+            'text': f"{title}",
             'y':0.95,
             'x':0.5,
             'xanchor': 'center',
@@ -84,6 +84,7 @@ def plot_slider(experiment_path):
     fig_model_2 = plot_box(f"{title_model_2}", ae_model_2, max_y_value, "red")
     
     with st.spinner('Plotting...'):
+        st.subheader(f"Comparison between two models on capor {captor} on the federated version (Aboslute Error)")
         _, c2_fed_fig, c3_local_fig, _ = st.columns((1,1,1,1))
         with c2_fed_fig:
             st.plotly_chart(fig_model_1, use_container_width=False)
@@ -132,7 +133,10 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
     return mapping_path_with_param
 
 def selection_of_experiment(possible_choice):
-    nb_captor = st.selectbox('Choose the number of captor', possible_choice["number_of_nodes"].keys())
+    time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
+    
+    nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
+    nb_captor = st.selectbox('Choose the number of captor', nb_captor_filtered.keys())
 
     windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
     window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys())
@@ -160,11 +164,14 @@ def selection_of_experiment(possible_choice):
 #######################################################################
 # Main
 #######################################################################
+st.header("Comparison Models")
+
 experiments = "experiments" # PATH where your experiments are saved
 if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     
     params_config_use_for_select = \
     [
+        "time_serie_percentage_length",
         "number_of_nodes",
         "window_size",
         "prediction_horizon",
@@ -212,18 +219,20 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         federated_node_model_2.append(results_2[mapping_captor_with_nodes_model_2[captor]]["Federated"])
         federated_node_model_2 = pd.DataFrame(federated_node_model_2, columns=multiselect_metrics, index=["Captor in Federation"])
 
+    _, c2_title_df, _ = st.columns((2,1,2))
+    
+    with c2_title_df:
+        st.header("Captor in Federation")
+    
     c1_model_1, c2_model_2 = st.columns(2)
     with c1_model_1:
-        st.subheader("Captor in Federation")
         model_1_name = paths_experiment_selected[0].split("\\")[1]
         st.subheader(f"{model_1_name}")
-        st.dataframe(federated_node_model_1, use_container_width=True)
+        st.table(federated_node_model_1.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]))
     with c2_model_2:
-        st.subheader("Captor in Federation")
         model_2_name = paths_experiment_selected[1].split("\\")[1]
         st.subheader(f"{model_2_name}")
-        st.dataframe(federated_node_model_2, use_container_width=True)
-
+        st.table(federated_node_model_2.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]))
 
 
     params_model_1 = Params(f'{path_model_1}/config.json')
