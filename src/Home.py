@@ -8,7 +8,7 @@ with c1_logo:
     st.image("Bloc_Marque_ronds.jpg", width=200)
 with c4_logo:
     st.image("cropped-vilagil.png", width=200)
-st.title("Welcome on the demonstrator")
+st.title("Welcome to the demonstrator")
 st.header("Projet-Vilagil")
 st.markdown(
         """

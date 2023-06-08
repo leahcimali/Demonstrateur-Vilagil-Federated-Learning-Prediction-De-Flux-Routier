@@ -13,39 +13,10 @@ import numpy as np
 import plotly.express as px
 
 
+from utils_streamlit_app import load_numpy, map_path_experiments_to_params, selection_of_experiment, filtering_path_file
 from config import Params
 
 
-@st.cache_data
-def filtering_path_file(file_dict, filter_list):
-    """
-    Returns a new dictionary that contains only the files that are in the filter list.
-
-    Parameters
-    ----------
-    file_dict : dict
-        The dictionary that maps some keys to lists of files.
-    filter_list : list
-        The list of files that are used as a filter.
-
-    Return
-    ------
-    filtered_file_dict : dict
-        The new dictionary that contains only the keys and files from file_dict that are also in filter_list.
-    """
-    filtered_file_dict = {}
-    for key in file_dict.keys():
-        for file in file_dict[key]:
-            if file in filter_list:
-                if key in filtered_file_dict:
-                    filtered_file_dict[key].append(file)
-                else:
-                    filtered_file_dict[key] = [file]
-    return filtered_file_dict
-
-@st.cache_data
-def load_numpy(path):
-    return np.load(path)
 
 def compute_absolute_error(path):
     y_true = load_numpy(f"{path}/y_true_local_{mapping_captor_with_nodes_model_1[captor]}.npy")
@@ -89,47 +60,6 @@ def plot_slider(experiment_path):
             st.plotly_chart(fig_model_1, use_container_width=False)
         with c3_local_fig:
             st.plotly_chart(fig_model_2, use_container_width=False)
-
-
-
-@st.cache_data
-def map_path_experiments_to_params(path_files, params_config_use_for_select):
-    """
-    Map all path experiments with parameters of their config.json
-
-    Parameters:
-    -----------
-        path_files :
-            The path to the config.json of all experiments
-        params_config_use_for_select :
-            The parameters use for the selection
-
-    Returns:
-        The mapping between path to the experiments and parameters of the experiements
-        exemple :
-        mapping = {
-            "nb_node" : {
-                3: [path_1, path_3],
-                4: [path_4]
-            },
-            windows_size: {
-                1: [path_1],
-                5: [path_3],
-                8: [path_4]
-            }
-        }
-    """
-    mapping_path_with_param = {}
-    for param in params_config_use_for_select:
-        mapping_path_with_param[param] = {}
-        for file in path_files:
-            with open(file) as f:
-                config = json.load(f)
-            if config[param] in mapping_path_with_param[param].keys():
-                mapping_path_with_param[param][config[param]].append(file)
-            else:
-                mapping_path_with_param[param][config[param]] = [file]
-    return mapping_path_with_param
 
 def selection_of_experiment(possible_choice):
     time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
