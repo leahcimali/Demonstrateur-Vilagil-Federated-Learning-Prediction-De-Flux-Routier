@@ -7,21 +7,22 @@ from os import path
 import glob
 import json
 import streamlit as st
-st.set_page_config(layout="wide")
 import pandas as pd
 import numpy as np
 import plotly.express as px
 
 
-from utils_streamlit_app import load_numpy, map_path_experiments_to_params, selection_of_experiment, filtering_path_file
+from utils_streamlit_app import load_numpy, map_path_experiments_to_params, filtering_path_file
 from config import Params
 
+st.set_page_config(layout="wide")
 
 
 def compute_absolute_error(path):
-    y_true = load_numpy(f"{path}/y_true_local_{mapping_captor_with_nodes_model_1[captor]}.npy")
-    y_pred_fed = load_numpy(f"{path}/y_pred_fed_{mapping_captor_with_nodes_model_2[captor]}.npy")
+    y_true = load_numpy(f"{path}/y_true_local_{mapping_sensor_with_nodes_model_1[sensor_select]}.npy")
+    y_pred_fed = load_numpy(f"{path}/y_pred_fed_{mapping_sensor_with_nodes_model_2[sensor_select]}.npy")
     return (np.abs(y_pred_fed.flatten() - y_true.flatten()))
+
 
 def plot_slider(experiment_path):
     ae_model_1 = compute_absolute_error(experiment_path[0])
@@ -30,18 +31,18 @@ def plot_slider(experiment_path):
     def plot_box(title, ae, max_y_value, color):
         fig = px.box(y=ae, color_discrete_sequence=[color], title=title, points="suspectedoutliers")
         fig.update_layout(
-        title={
-            'text': f"{title}",
-            'y':0.95,
-            'x':0.5,
-            'xanchor': 'center',
-            'yanchor': 'top'},
-        yaxis_title="Trafic flow (absolute error)",
-        yaxis=dict(range=[0, max_y_value]),
-        font=dict(
-            size=28,
-            color="#7f7f7f"
-        ), height=900, width=250
+            title={
+                'text': f"{title}",
+                'y': 0.95,
+                'x': 0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'},
+            yaxis_title="Trafic flow (absolute error)",
+            yaxis=dict(range=[0, max_y_value]),
+            font=dict(
+                size=28,
+                color="#7f7f7f"
+            ), height=900, width=250
         )
         return fig
 
@@ -54,20 +55,21 @@ def plot_slider(experiment_path):
     fig_model_2 = plot_box(f"{title_model_2}", ae_model_2, max_y_value, "red")
 
     with st.spinner('Plotting...'):
-        st.subheader(f"Comparison between two models on capor {captor} on the federated version (Aboslute Error)")
-        _, c2_fed_fig, c3_local_fig, _ = st.columns((1,1,1,1))
+        st.subheader(f"Comparison between two models on sensor {sensor_select} on the federated version (Aboslute Error)")
+        _, c2_fed_fig, c3_local_fig, _ = st.columns((1, 1, 1, 1))
         with c2_fed_fig:
             st.plotly_chart(fig_model_1, use_container_width=False)
         with c3_local_fig:
             st.plotly_chart(fig_model_2, use_container_width=False)
 
+
 def selection_of_experiment(possible_choice):
     time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
 
-    nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
-    nb_captor = st.selectbox('Choose the number of captor', nb_captor_filtered.keys())
+    nb_sensor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
+    nb_sensor = st.selectbox('Choose the number of sensor_select', nb_sensor_filtered.keys())
 
-    windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
+    windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_sensor])
     window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys())
 
     horizon_filtered = filtering_path_file(possible_choice["prediction_horizon"], windows_size_filtered[window_size])
@@ -78,34 +80,34 @@ def selection_of_experiment(possible_choice):
     col1_model_1, col2_model_2 = st.columns(2)
     with col1_model_1:
         model_1 = st.radio(
-        "Choose the first model",
-        models_filtered.values(), key="model_1")
+            "Choose the first model",
+            models_filtered.values(), key="model_1")
     with col2_model_2:
         model_2 = st.radio(
-        "Choose the second model",
-        models_filtered.values(), key="model_2")
+            "Choose the second model",
+            models_filtered.values(), key="model_2")
 
-    experiment_path = [model_1[0], model_2[0]]
-    return experiment_path
-
+    return [model_1[0], model_2[0]]
 
 
 #######################################################################
 # Main
 #######################################################################
+
+
 st.header("Comparison Models")
 
-experiments = "experiments" # PATH where your experiments are saved
+experiments = "experiments"  # PATH where your experiments are saved
 if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
 
     params_config_use_for_select = \
-    [
-        "time_serie_percentage_length",
-        "number_of_nodes",
-        "window_size",
-        "prediction_horizon",
-        "model"
-    ]
+        [
+            "time_serie_percentage_length",
+            "number_of_nodes",
+            "window_size",
+            "prediction_horizon",
+            "model"
+        ]
     user_selection = map_path_experiments_to_params(path_files, params_config_use_for_select)
 
     paths_experiment_selected = selection_of_experiment(user_selection)
@@ -123,35 +125,33 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     with open(f"{path_model_2}/config.json") as f:
         config_2 = json.load(f)
 
-
-    mapping_captor_with_nodes_model_1 = {}
+    mapping_sensor_with_nodes_model_1 = {}
     for node in results_1.keys():
-        mapping_captor_with_nodes_model_1[config_1["nodes_to_filter"][int(node)]] = node
+        mapping_sensor_with_nodes_model_1[config_1["nodes_to_filter"][int(node)]] = node
 
-    mapping_captor_with_nodes_model_2 = {}
+    mapping_sensor_with_nodes_model_2 = {}
     for node in results_2.keys():
-        mapping_captor_with_nodes_model_2[config_2["nodes_to_filter"][int(node)]] = node
+        mapping_sensor_with_nodes_model_2[config_2["nodes_to_filter"][int(node)]] = node
 
-    captor = st.selectbox('Choose the captor', mapping_captor_with_nodes_model_1.keys())
+    sensor_select = st.selectbox('Choose the sensor_select', mapping_sensor_with_nodes_model_1.keys())
 
     metrics = list(results_1["0"]["local_only"].keys())
     multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
 
-
     federated_node_model_1 = []
     if "Federated" in results_1["0"].keys():
-        federated_node_model_1.append(results_1[mapping_captor_with_nodes_model_1[captor]]["Federated"])
-        federated_node_model_1 = pd.DataFrame(federated_node_model_1, columns=multiselect_metrics, index=["Captor in Federation"])
+        federated_node_model_1.append(results_1[mapping_sensor_with_nodes_model_1[sensor_select]]["Federated"])
+        federated_node_model_1 = pd.DataFrame(federated_node_model_1, columns=multiselect_metrics, index=["sensor in Federation"])
 
     federated_node_model_2 = []
     if "Federated" in results_1["0"].keys():
-        federated_node_model_2.append(results_2[mapping_captor_with_nodes_model_2[captor]]["Federated"])
-        federated_node_model_2 = pd.DataFrame(federated_node_model_2, columns=multiselect_metrics, index=["Captor in Federation"])
+        federated_node_model_2.append(results_2[mapping_sensor_with_nodes_model_2[sensor_select]]["Federated"])
+        federated_node_model_2 = pd.DataFrame(federated_node_model_2, columns=multiselect_metrics, index=["sensor in Federation"])
 
-    _, c2_title_df, _ = st.columns((2,1,2))
+    _, c2_title_df, _ = st.columns((2, 1, 2))
 
     with c2_title_df:
-        st.header("Captor in Federation")
+        st.header("sensor in Federation")
 
     c1_model_1, c2_model_2 = st.columns(2)
     with c1_model_1:
@@ -162,7 +162,6 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         model_2_name = paths_experiment_selected[1].split("\\")[1]
         st.subheader(f"{model_2_name}")
         st.table(federated_node_model_2.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
-
 
     params_model_1 = Params(f'{path_model_1}/config.json')
     params_model_2 = Params(f'{path_model_2}/config.json')
