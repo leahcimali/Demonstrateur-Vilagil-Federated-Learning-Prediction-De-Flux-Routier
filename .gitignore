@@ -1,5 +1,5 @@
 /Other/*
-/experiment/*
+/experiments/*
 /script/*
 __pycache__/
 *.pth
