@@ -1,7 +1,8 @@
 import streamlit as st
 import json
 import numpy as np
-import pandas as pd
+import folium
+
 
 @st.cache_resource
 def filtering_path_file(file_dict, filter_list):
@@ -30,9 +31,11 @@ def filtering_path_file(file_dict, filter_list):
                     filtered_file_dict[key] = [file]
     return filtered_file_dict
 
+
 @st.cache_resource
 def load_numpy(path):
     return np.load(path)
+
 
 @st.cache_resource
 def map_path_experiments_to_params(path_files, params_config_use_for_select):
@@ -73,6 +76,7 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
                 mapping_path_with_param[param][config[param]] = [file]
     return mapping_path_with_param
 
+
 def selection_of_experiment(possible_choice):
     """
     Create the visual for choosing an experiment
@@ -99,13 +103,37 @@ def selection_of_experiment(possible_choice):
     models_filtered = filtering_path_file(possible_choice["model"], horizon_filtered[horizon_size])
     model = st.selectbox('Choose the model', models_filtered.keys())
 
-    if(len(models_filtered[model]) > 1):
-        st.write("TODO : WARNING ! More than one results correspond to your research pick only one (see below)")
-        select_exp = st.selectbox("Choose", models_filtered[model])
-        select_exp = models_filtered[model].index(select_exp)
-        experiment_path = ("\\".join(models_filtered[model][select_exp].split("\\")[:-1]))
+    if len(models_filtered[model]) <= 1:
+        return ("\\".join(models_filtered[model][0].split("\\")[:-1]))
 
-    else:
-        experiment_path = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
+    st.write("TODO : WARNING ! More than one results correspond to your research pick only one (see below)")
+    select_exp = st.selectbox("Choose", models_filtered[model])
+    select_exp = models_filtered[model].index(select_exp)
+    return ("\\".join(models_filtered[model][select_exp].split("\\")[:-1]))
 
-    return experiment_path
+
+def rgb_to_hex(rgb):
+    return '#%02x%02x%02x' % rgb
+
+
+def create_circle_precision_predict(marker_location, value_percent, map_folium, color):
+    """
+    Draw a circle at the position of the marker.
+
+    Parameters:
+    ----------
+        marker_location (Marker Folium)
+
+        value_percent (float)
+
+        map_folium (Map Folium)
+
+        color :
+            Hex code HTML
+    """
+    lat, long = marker_location
+    folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
+    folium.Circle(location=[lat + 0.0020, long + 0.0018], color=color, radius=100 * value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
+    folium.map.Marker([lat + 0.0022, long + 0.0014], icon=folium.features.DivIcon(html=f"<div style='font-weight:bold; font-size: 15pt; color: black'>{int(value_percent * 100)}%</div>")).add_to(map_folium)
+    # folium.Circle(location=[lat,long], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
+    # folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
