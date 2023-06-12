@@ -27,10 +27,15 @@ config_file_path = sys.argv[1]
 
 params = src.config.Params(config_file_path)
 
-makedirs(params.save_model_path, exist_ok=True)
-copy(config_file_path.split("\\")[-1], params.save_model_path + "config.json")
+PATH_EXPERIMENTS = f"experiments/{params.save_model_path}"
 
-with open(params.save_model_path + 'train.txt', 'w') as f:
+makedirs(PATH_EXPERIMENTS, exist_ok=True)
+copy(
+    sys.argv[1],
+    f"{PATH_EXPERIMENTS}config.json",
+)
+
+with open(f"{PATH_EXPERIMENTS}train.txt", 'w') as f:
     with contextlib.redirect_stdout(src.config.Tee(f, sys.stdout)):
 
         module_name = 'src.models'
@@ -65,13 +70,13 @@ with open(params.save_model_path + 'train.txt', 'w') as f:
 
             for node in range(params.number_of_nodes):
                 local_model = model(input_size, hidden_size, output_size, num_layers)
-            
+
                 data_dict = datadict[node]
                 local_model, train_losses[node], val_losses[node] = train_model(local_model, data_dict['train'], data_dict['val'], 
-                                                                        model_path = f'{params.save_model_path}local{node}.pth',
+                                                                        model_path = f'{PATH_EXPERIMENTS}local{node}.pth',
                                                                         num_epochs=params.num_epochs_local_no_federation, 
                                                                         remove = False, learning_rate=params.learning_rate)
-                
+
                 y_true, y_pred = testmodel(local_model,data_dict['test'], meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
                 if params.plot : 
                     plot_prediction(y_true, y_pred, data_dict['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=params.time_point_to_plot, node=0, plot_fig_name = f'Local_{params.num_epochs_local_no_federation}epochs_node_{node}' )
@@ -79,8 +84,8 @@ with open(params.save_model_path + 'train.txt', 'w') as f:
         # # Federated Learning Experiment
         if params.num_epochs_local_federation:
             main_model = model(input_size, hidden_size, output_size, num_layers)
-            
-            model = fed_training_plan(main_model, datadict, params.communication_rounds, params.num_epochs_local_federation, model_path = f'{params.save_model_path}',)
+
+            model = fed_training_plan(main_model, datadict, params.communication_rounds, params.num_epochs_local_federation, model_path = f'{PATH_EXPERIMENTS}',)
             
 
 
