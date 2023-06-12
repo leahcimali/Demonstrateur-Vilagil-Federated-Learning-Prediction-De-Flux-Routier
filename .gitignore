@@ -14,3 +14,6 @@ metric.pkl
 *.pyc
 Experiment federated small data copy.ipynb
 Experiment federated small data.ipynb
+box plot.ipynb
+retrain.py
+
