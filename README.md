@@ -42,4 +42,6 @@ The same client participates in the train and the test, the local dataset will s
 
 In the second approach, each client participating in the test, returns to the server a set of metrics according to its local dataset and the last version of the model received after the training.
 
-Experiments results : https://drive.google.com/drive/folders/1SDk7oa4IaASBpCoj8BIQrStD3ixo-B2U?usp=drive_link
+To run the app : `streamlit.exe run ./src/Home.py`
+
+Experiments results and models : https://drive.google.com/drive/folders/1SDk7oa4IaASBpCoj8BIQrStD3ixo-B2U?usp=drive_link
