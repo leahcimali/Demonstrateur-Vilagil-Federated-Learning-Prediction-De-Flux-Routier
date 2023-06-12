@@ -77,6 +77,10 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
     return mapping_path_with_param
 
 
+def format_windows_prediction_size(value):
+    return f"{int((value * 5 ) / 60)}h (t+{(value)})"
+
+
 def selection_of_experiment(possible_choice):
     """
     Create the visual for choosing an experiment
@@ -88,17 +92,21 @@ def selection_of_experiment(possible_choice):
     Returns:
         return the path to the experiment that the user choose
     """
+    st.subheader("Selection of experiment")
+    st.markdown("""
+                *The selection is sequential*
+                """)
 
-    time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
+    time_serie_percentage_length = st.selectbox('Choose the time series length used to train the model', possible_choice["time_serie_percentage_length"].keys())
 
     nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
-    nb_captor = st.selectbox('Choose the number of captor', nb_captor_filtered.keys())
+    nb_captor = st.selectbox('Choose the number of sensors', nb_captor_filtered.keys())
 
     windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
-    window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys())
+    window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys(), format_func=format_windows_prediction_size)
 
     horizon_filtered = filtering_path_file(possible_choice["prediction_horizon"], windows_size_filtered[window_size])
-    horizon_size = st.selectbox('Choose the prediction horizon', horizon_filtered.keys())
+    horizon_size = st.selectbox('Choose how far you want to see in the future', horizon_filtered.keys(), format_func=format_windows_prediction_size)
 
     models_filtered = filtering_path_file(possible_choice["model"], horizon_filtered[horizon_size])
     model = st.selectbox('Choose the model', models_filtered.keys())
