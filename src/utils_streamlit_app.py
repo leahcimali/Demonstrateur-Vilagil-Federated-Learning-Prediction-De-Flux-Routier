@@ -137,3 +137,9 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
     folium.map.Marker([lat + 0.0022, long + 0.0014], icon=folium.features.DivIcon(html=f"<div style='font-weight:bold; font-size: 15pt; color: black'>{int(value_percent * 100)}%</div>")).add_to(map_folium)
     # folium.Circle(location=[lat,long], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
     # folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
+
+
+def get_color_fed_vs_local(fed_value, local_value):
+    red = "#fe7597"
+    green = "#7cff2d"
+    return (green, red) if ((fed_value) >= (local_value)) else (red, green)

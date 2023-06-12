@@ -3,25 +3,22 @@ from os import path
 
 import streamlit as st
 from streamlit_folium import folium_static
-
 import glob
 import json
 import pandas as pd
-import numpy as np
-import plotly.express as px
 import folium
 
 
-from metrics import rmse, maape
+from metrics import maape
 from config import Params
+from utils_streamlit_app import create_circle_precision_predict, get_color_fed_vs_local
 from utils_streamlit_app import load_numpy, map_path_experiments_to_params
-from utils_streamlit_app import create_circle_precision_predict
 from utils_streamlit_app import selection_of_experiment
 
 
 st.set_page_config(layout="wide")
 
-seattle_roads = [
+SEATTLE_ROADS = [
     [47.679470, -122.315626],
     [47.679441, -122.306665],
     [47.683058163418266, -122.30074031156877],
@@ -48,73 +45,16 @@ seattle_map_local = folium.Map(location=[47.67763, -122.30064], zoom_start=15, z
 st.title('[WIP] carte Analyses results experimentation')
 
 
-def plot_prediction_graph(experiment_path):
-    test_set = load_numpy(f"{experiment_path}/test_data_{mapping_sensor_with_nodes[sensor_select]}.npy")
-
-    y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy")
-    y_pred = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor_select]}.npy")
-    y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor_select]}.npy")
-
-    index = load_numpy(f"{experiment_path}/index_{mapping_sensor_with_nodes[sensor_select]}.npy")
-    index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
-
-    slider = st.slider('Select time?', 0, len(index) - params.prediction_horizon - params.window_size, params.prediction_horizon)
-
-    def plot_graph(color, label, title, y_pred, i):
-        rmse_computed = rmse(y_true[i, :].flatten(), y_pred[i, :].flatten())
-
-        df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
-        df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
-        df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
-        df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
-        fig = px.line(df, x='Time', y=["Window"], color_discrete_sequence=['black'])
-        fig.add_scatter(x=df['Time'], y=df['y_true'], mode='markers+lines', marker=dict(color='blue'), name='y_true')
-        fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse_computed}')
-        fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error')
-        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
-        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
-        fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
-
-        return fig
-
-    # FEDERATED
-    fed_fig = plot_graph('green', 'Federated', "Federated Prediction", y_pred_fed, slider)
-
-    # LOCAL
-    # local_fig = plot_graph('red', 'Local', "Local Prediction", y_pred, slider)
-
-    with st.spinner('Plotting...'):
-        st.plotly_chart(fed_fig, use_container_width=True)
-    # st.plotly_chart(local_fig, use_container_width=True)
-
-
 def plot_map(experiment_path):
-    # test_set = load_numpy(f"{experiment_path}/test_data_{mapping_sensor_with_nodes[sensor]}.npy")
-    # sensors_results = {}
-    # for sensor in mapping_sensor_with_nodes.keys():
-    #     if sensor in sensors_results.keys():
-    #         sensors_results[f"{sensor}"]["y_true"] = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor]}.npy")
-    #         sensors_results[f"{sensor}"]["y_pred"] = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor]}.npy")
-    #         sensors_results[f"{sensor}"]["y_pred_fed"] = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}.npy")
-    #     else:
-    #         sensor[f"{sensor}"] = {}
-
     index = load_numpy(f"{experiment_path}/index_{mapping_sensor_with_nodes[sensor_select]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
     slider = st.slider('Select time?', 0, len(index) - params.prediction_horizon - params.window_size, params.prediction_horizon, key="test")
 
     def plot_map_slider(y_true, y_pred, y_pred_fed, i, coords):
-        red = "#fe7597"
-        green = "#7cff2d"
         maape_computed_local = 1 - (maape(y_true[i, :].flatten(), y_pred[i, :].flatten())) / 100.0
         maape_computed_fed = 1 - (maape(y_true[i, :].flatten(), y_pred_fed[i, :].flatten())) / 100.0
-        if ((maape_computed_local) > (maape_computed_fed)):
-            color_local = green
-            color_fed = red
-        else:
-            color_local = red
-            color_fed = green
+        color_fed, color_local = get_color_fed_vs_local(maape_computed_fed, maape_computed_local)
 
         create_circle_precision_predict(coords, maape_computed_local, seattle_map_local, color_local)
         create_circle_precision_predict(coords, maape_computed_fed, seattle_map_global, color_fed)
@@ -174,7 +114,7 @@ if path_files := glob.glob(f"{experiments}**/config.json", recursive=True):
     st.session_state['sensor_select'] = int(mapping_sensor_with_nodes[sensor_select])
 
     map_sensor_loc = {}
-    seattle_roads_crop = [seattle_roads[i] for i in range(len(mapping_sensor_with_nodes.keys()))]
+    seattle_roads_crop = [SEATTLE_ROADS[i] for i in range(len(mapping_sensor_with_nodes.keys()))]
 
     for sensor, locations in zip(mapping_sensor_with_nodes.keys(), seattle_roads_crop):
         map_sensor_loc[sensor] = locations
@@ -203,5 +143,4 @@ if path_files := glob.glob(f"{experiments}**/config.json", recursive=True):
     params = Params(f'{path_experiment_selected}/config.json')
     if (path.exists(f'{path_experiment_selected}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy') and
         path.exists(f"{path_experiment_selected}/y_pred_fed_{mapping_sensor_with_nodes[sensor_select]}.npy")):
-        plot_prediction_graph(path_experiment_selected)
         plot_map(path_experiment_selected)
