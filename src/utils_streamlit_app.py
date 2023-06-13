@@ -147,7 +147,9 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
     # folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
 
 
-def get_color_fed_vs_local(fed_value, local_value):
+def get_color_fed_vs_local(fed_value, local_value, superior=True):
     red = "#fe7597"
-    green = "#7cff2d"
-    return (green, red) if ((fed_value) >= (local_value)) else (red, green)
+    green = "#75ff5b"
+    if (superior):
+        return (green, red) if ((fed_value) >= (local_value)) else (red, green)
+    return (green, red) if ((fed_value) < (local_value)) else (red, green)

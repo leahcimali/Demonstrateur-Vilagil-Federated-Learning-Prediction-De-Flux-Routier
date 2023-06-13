@@ -15,6 +15,7 @@ import plotly.express as px
 from metrics import rmse
 from config import Params
 from utils_streamlit_app import load_numpy, map_path_experiments_to_params, selection_of_experiment
+from utils_streamlit_app import get_color_fed_vs_local
 
 st.set_page_config(layout="wide")
 
@@ -31,25 +32,30 @@ def plot_prediction_graph(experiment_path):
 
     slider = st.slider('Select time?', 0, len(index) - params.prediction_horizon - params.window_size, params.prediction_horizon)
 
-    def plot_graph(color, label, title, y_pred, i):
+    def plot_graph(color, label, title, y_pred, rmse_value, i):
         df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
         df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
         df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
         df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
         fig = px.line(df, x='Time', y=["Window"], color_discrete_sequence=['black'])
-        fig.add_scatter(x=df['Time'], y=df['y_true'], mode='markers+lines', marker=dict(color='blue'), name='y_true')
-        fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse(y_true[i, :].flatten(), y_pred[i, :].flatten()):.2f}')
+        fig.add_scatter(x=df['Time'], y=df['y_true'], mode='lines', marker=dict(color='blue'), name='y_true')
+        fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse_value:.2f}')
         fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error')
         fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
-        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
+        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh-%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh-%Mmin) |')} ", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
         fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
         return fig
 
+    rmse_local = rmse(y_true[slider, :].flatten(), y_pred[slider, :].flatten())
+    rmse_fed = rmse(y_true[slider, :].flatten(), y_pred_fed[slider, :].flatten())
+
+    color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
+
     # FEDERATED
-    fed_fig = plot_graph('green', 'Federated', "Federated Prediction", y_pred_fed, slider)
+    fed_fig = plot_graph(color_fed, 'Federated', "Federated Prediction", y_pred_fed, rmse_fed, slider)
 
     # LOCAL
-    local_fig = plot_graph('red', 'Local', "Local Prediction", y_pred, slider)
+    local_fig = plot_graph(color_local, 'Local', "Local Prediction", y_pred, rmse_local, slider)
 
     with st.spinner('Plotting...'):
         st.plotly_chart(fed_fig, use_container_width=True)
