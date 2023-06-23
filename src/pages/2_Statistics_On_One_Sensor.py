@@ -13,14 +13,16 @@ from sub_page_one_sensor.box_plot import box_plot_sensor
 from sub_page_one_sensor.predictions_graph import prediction_graph_sensor
 from sub_page_one_sensor.map import map_sensors
 
+
 st.set_page_config(layout="wide")
+
 
 #######################################################################
 # Constant(s)
 #######################################################################
 PAGES = {
     "Prediction sensor": prediction_graph_sensor,
-    "Box Plot sensor": box_plot_sensor,
+    "Boxplot sensor": box_plot_sensor,
     "Map of sensors": map_sensors
 }
 
@@ -50,27 +52,28 @@ if (path_experiment_selected is not None):
     with open(f"{path_experiment_selected}/config.json") as f:
         config = json.load(f)
 
-    mapping_sensor_with_nodes = {}
-    for node in results.keys():
-        mapping_sensor_with_nodes[config["nodes_to_filter"][int(node)]] = node
+    mapping_sensor_with_node = {}
+    for node in results.keys():  # e.g. keys = ['0', '1', '2', ...]
+        mapping_sensor_with_node[config["nodes_to_filter"][int(node)]] = node  # e.g. nodes_to_filter = [118, 261, 10, ...]
 
-    sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys())
+    sensor_selected = st.selectbox('Choose the sensor', mapping_sensor_with_node.keys())
 
-    metrics = list(results[mapping_sensor_with_nodes[sensor_select]]["local_only"].keys())
-    multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
+    metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
 
-    local_node = []
-    if "local_only" in results[mapping_sensor_with_nodes[sensor_select]].keys():
-        local_node = results[mapping_sensor_with_nodes[sensor_select]]["local_only"]
-        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["sensor in Local"])
+    results_sensor_federated = []
+    if "Federated" in results[mapping_sensor_with_node[sensor_selected]].keys():  # e.g. keys = [118, 261, 10, ...]
+        results_sensor_federated = results[mapping_sensor_with_node[sensor_selected]]["Federated"]
+        results_sensor_federated = pd.DataFrame(results_sensor_federated, columns=metrics, index=["sensor in Federation"])
 
-    federated_node = []
-    if "Federated" in results[mapping_sensor_with_nodes[sensor_select]].keys():
-        federated_node = results[mapping_sensor_with_nodes[sensor_select]]["Federated"]
-        federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["sensor in Federation"])
+    results_sensor_local = []
+    if "local_only" in results[mapping_sensor_with_node[sensor_selected]].keys():  # e.g. keys = [118, 261, 10, ...]
+        results_sensor_local = results[mapping_sensor_with_node[sensor_selected]]["local_only"]
+        results_sensor_local = pd.DataFrame(results_sensor_local, columns=metrics, index=["sensor in Local"])
 
     st.subheader("sensor in Federation vs sensor in Local")
-    fed_local_node = pd.concat((federated_node, local_node), axis=0)
-    st.table(fed_local_node.style.set_table_styles(style_dataframe(fed_local_node)).format("{:.2f}"))
+    results_fed_local = pd.concat((results_sensor_federated, results_sensor_local), axis=0)
 
-    PAGES[page_selectioned](path_experiment_selected, mapping_sensor_with_nodes[sensor_select])
+    # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
+    st.table(results_fed_local.style.set_table_styles(style_dataframe(results_fed_local)).format("{:.2f}"))
+
+    PAGES[page_selectioned](path_experiment_selected, mapping_sensor_with_node[sensor_selected])

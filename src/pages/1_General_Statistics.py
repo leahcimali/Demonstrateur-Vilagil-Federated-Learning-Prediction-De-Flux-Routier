@@ -10,15 +10,19 @@ from sub_pages_general_stats.comparison_models import comparison_models
 
 st.set_page_config(layout="wide")
 
-#######################################################################
-# Main
-#######################################################################
 
-pages = {
+#######################################################################
+# Constant(s)
+#######################################################################
+PAGES = {
     "One experiment": experiment_general_stats,
     "Comparison between models": comparison_models
 }
 
+
+#######################################################################
+# Main
+#######################################################################
 st.header("General Statistics")
 st.markdown("---")
 st.markdown("""
@@ -28,13 +32,12 @@ st.markdown("""
             """)
 st.markdown("---")
 
-
 st.sidebar.title("General Statistics")
 with st.sidebar:
     page_selectioned = st.radio(
         "Choose what you want to see",
-        pages.keys(),
+        PAGES.keys(),
         index=0
     )
 
-pages[page_selectioned]()
+PAGES[page_selectioned]()

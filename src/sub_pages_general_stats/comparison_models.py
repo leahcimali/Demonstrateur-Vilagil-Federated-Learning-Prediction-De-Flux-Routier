@@ -24,7 +24,7 @@ def compare_config(path_file_1, path_file_2):
     return config_1["nodes_to_filter"] == config_2["nodes_to_filter"]
 
 
-def selection_of_experiments():
+def selection_of_experiments_custom():
     experiments = "experiments/"  # PATH where all the experiments are saved
     if path_files := glob.glob(f"./{experiments}**/config.json", recursive=True):
         col1_model_1, col2_model_2 = st.columns(2)
@@ -83,12 +83,12 @@ def comparison_models():
                 * In the box plot, you will see the distribution of the RMSE values.
             """)
     st.divider()
-    paths_experiment_selected = selection_of_experiments()
+
+    paths_experiment_selected = selection_of_experiments_custom()
     if (paths_experiment_selected is not None):
         path_model_1 = paths_experiment_selected[0]
         path_model_2 = paths_experiment_selected[1]
 
-        #  Load config and results
         with open(f"{path_model_1}/test.json") as f:
             results_1 = json.load(f)
         with open(f"{path_model_1}/config.json") as f:
@@ -99,29 +99,29 @@ def comparison_models():
         with open(f"{path_model_2}/config.json") as f:
             config_2 = json.load(f)
 
-        multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
+        metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
 
-        federated_node_model_1 = []
-        local_node_model_1 = []
+        federated_results_model_1 = []
+        local_results_model_1 = []
         for i in range(config_1["number_of_nodes"]):
-            if "Federated" in results_1["0"].keys():
-                federated_node_model_1.append(results_1[str(i)]["Federated"])
-            if "local_only" in results_1["0"].keys():
-                local_node_model_1.append(results_1[str(i)]["local_only"])
+            if "Federated" in results_1["0"].keys():  # e.g. keys = ['Federated', 'local_only']
+                federated_results_model_1.append(results_1[str(i)]["Federated"])
+            if "local_only" in results_1["0"].keys():  # e.g. keys = ['Federated', 'local_only']
+                local_results_model_1.append(results_1[str(i)]["local_only"])
 
-        federated_node_model_1 = pd.DataFrame(federated_node_model_1, columns=multiselect_metrics)
-        local_node_model_1 = pd.DataFrame(local_node_model_1, columns=multiselect_metrics)
+        federated_results_model_1 = pd.DataFrame(federated_results_model_1, columns=metrics)
+        local_results_model_1 = pd.DataFrame(local_results_model_1, columns=metrics)
 
-        federated_node_model_2 = []
-        local_node_model_2 = []
+        federated_results_model_2 = []
+        local_results_model_2 = []
         for j in range(config_2["number_of_nodes"]):
-            if "Federated" in results_2["0"].keys():
-                federated_node_model_2.append(results_2[str(j)]["Federated"])
-            if "local_only" in results_2["0"].keys():
-                local_node_model_2.append(results_2[str(j)]["local_only"])
+            if "Federated" in results_2["0"].keys():  # e.g. keys = ['Federated', 'local_only']
+                federated_results_model_2.append(results_2[str(j)]["Federated"])
+            if "local_only" in results_2["0"].keys():  # e.g. keys = ['Federated', 'local_only']
+                local_results_model_2.append(results_2[str(j)]["local_only"])
 
-        federated_node_model_2 = pd.DataFrame(federated_node_model_2, columns=multiselect_metrics)
-        local_node_model_2 = pd.DataFrame(local_node_model_2, columns=multiselect_metrics)
+        federated_results_model_2 = pd.DataFrame(federated_results_model_2, columns=metrics)
+        local_results_model_2 = pd.DataFrame(local_results_model_2, columns=metrics)
 
         _, c2_title_df, _ = st.columns((2, 1, 2))
 
@@ -129,20 +129,24 @@ def comparison_models():
             st.header("Sensor in Federation/Local")
 
         c1_model_1, c2_model_2 = st.columns(2)
+
+        #######################################################################
+        # Model 1
+        #######################################################################
         with c1_model_1:
             model_1_name = config_1["model"]
             st.divider()
             st.subheader(f"{model_1_name}")
             st.divider()
-            federated_node_model_1_stats = federated_node_model_1.describe().T
-            local_node_model_1_stats = local_node_model_1.describe().T
+            federated_results_model_1_stats = federated_results_model_1.describe().T
+            local_results_model_1_stats = local_results_model_1.describe().T
             st.subheader("Federated Version")
-            st.table(federated_node_model_1_stats.style.set_table_styles(style_dataframe(federated_node_model_1_stats)).format("{:.2f}"))
+            st.table(federated_results_model_1_stats.style.set_table_styles(style_dataframe(federated_results_model_1_stats)).format("{:.2f}"))
             st.subheader("Local Version")
-            st.table(local_node_model_1_stats.style.set_table_styles(style_dataframe(local_node_model_1_stats)).format("{:.2f}"))
+            st.table(local_results_model_1_stats.style.set_table_styles(style_dataframe(local_results_model_1_stats)).format("{:.2f}"))
             st.plotly_chart(
-                box_plot_comparison(federated_node_model_1["RMSE"],
-                                    local_node_model_1["RMSE"],
+                box_plot_comparison(federated_results_model_1["RMSE"],
+                                    local_results_model_1["RMSE"],
                                     "Federated",
                                     "Local",
                                     config_1["model"],
@@ -150,20 +154,23 @@ def comparison_models():
                                     "RMSE Values"),
                 use_container_width=True)
 
+        #######################################################################
+        # Model 2
+        #######################################################################
         with c2_model_2:
             model_2_name = config_2["model"]
             st.divider()
             st.subheader(f"{model_2_name}")
             st.divider()
-            federated_node_model_2_stats = federated_node_model_2.describe().T
-            local_node_model_2_stats = local_node_model_2.describe().T
+            federated_results_model_2_stats = federated_results_model_2.describe().T
+            local_results_model_2_stats = local_results_model_2.describe().T
             st.subheader("Federated Version")
-            st.table(federated_node_model_2_stats.style.set_table_styles(style_dataframe(federated_node_model_2_stats)).format("{:.2f}"))
+            st.table(federated_results_model_2_stats.style.set_table_styles(style_dataframe(federated_results_model_2_stats)).format("{:.2f}"))
             st.subheader("Local Version")
-            st.table(local_node_model_2_stats.style.set_table_styles(style_dataframe(local_node_model_2_stats)).format("{:.2f}"))
+            st.table(local_results_model_2_stats.style.set_table_styles(style_dataframe(local_results_model_2_stats)).format("{:.2f}"))
             st.plotly_chart(
-                box_plot_comparison(federated_node_model_2["RMSE"],
-                                    local_node_model_2["RMSE"],
+                box_plot_comparison(federated_results_model_2_stats["RMSE"],
+                                    local_results_model_2_stats["RMSE"],
                                     "Federated",
                                     "Local",
                                     config_1["model"],
