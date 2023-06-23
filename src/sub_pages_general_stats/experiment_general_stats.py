@@ -15,7 +15,7 @@ from utils_streamlit_app import selection_of_experiment, style_dataframe
 def experiment_general_stats():
     st.subheader("On one Experiment")
     st.write("""
-            * In this pages select one experiment to see his results
+            * On this page select one experiment to see his results.
                 * In the table, you will find the general statistics for both the Local version and\\
                 the Federated version on differents metrics.
             """)

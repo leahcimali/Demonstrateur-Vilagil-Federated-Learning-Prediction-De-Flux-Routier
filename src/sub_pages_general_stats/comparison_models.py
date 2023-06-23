@@ -76,11 +76,11 @@ def box_plot_comparison(serie_1, serie_2, name_1: str, name_2: str, title: str, 
 def comparison_models():
     st.subheader("Comparison Models")
     st.write("""
-            * In this pages select two experiments to compare them
+            * On this page select two experiments to compare them.
                 * In the table, you will find the general statistics for both the Local version and\\
-                the Federated version on differents metrics. On the left the left model and one the\\
-                right the other model
-                * In the box plot, you will see the distribution of the RMSE values
+                the Federated version on differents metrics. On the left the left model and on the\\
+                right the other model.
+                * In the box plot, you will see the distribution of the RMSE values.
             """)
     st.divider()
     paths_experiment_selected = selection_of_experiments()
@@ -99,7 +99,6 @@ def comparison_models():
         with open(f"{path_model_2}/config.json") as f:
             config_2 = json.load(f)
 
-        metrics = list(results_1["0"]["local_only"].keys())
         multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
 
         federated_node_model_1 = []
