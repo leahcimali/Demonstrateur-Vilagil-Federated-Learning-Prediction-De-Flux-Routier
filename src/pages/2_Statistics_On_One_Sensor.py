@@ -31,11 +31,12 @@ PAGES = {
 # Main
 #######################################################################
 st.header("Statistics on one sensor")
-st.markdown("---")
+st.divider()
 st.markdown("""
-            TODO DESCRIPTION
+            This is the statistics page for a single sensor. Here, you can view metrics
+            for the sensor of your choice.
             """)
-st.markdown("---")
+st.divider()
 
 st.sidebar.title("Statistics on one sensor")
 with st.sidebar:
@@ -44,6 +45,8 @@ with st.sidebar:
         PAGES.keys(),
         index=0
     )
+
+st.subheader("Selection of the experiment")
 
 path_experiment_selected = selection_of_experiment()
 if (path_experiment_selected is not None):
@@ -55,6 +58,8 @@ if (path_experiment_selected is not None):
     mapping_sensor_with_node = {}
     for node in results.keys():  # e.g. keys = ['0', '1', '2', ...]
         mapping_sensor_with_node[config["nodes_to_filter"][int(node)]] = node  # e.g. nodes_to_filter = [118, 261, 10, ...]
+
+    st.divider()
 
     sensor_selected = st.selectbox('Choose the sensor', mapping_sensor_with_node.keys())
 

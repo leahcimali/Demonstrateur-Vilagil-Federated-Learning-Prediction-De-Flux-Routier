@@ -21,6 +21,13 @@ from utils_streamlit_app import get_color_fed_vs_local
 # Function(s)
 #######################################################################
 def plot_prediction_graph(experiment_path, sensor_selected):
+    annotated_text(
+        "A lower RMSE value indicates a better prediction. The ",
+        ("green", "", "#75ff5b"), " prediction",
+        " is better than the ",
+        ("red", "", "#fe7597"), " one because it has a lower RMSE value")
+    st.divider()
+
     params = Params(f"{experiment_path}/config.json")
     test_set = load_numpy(f"{experiment_path}/test_data_{sensor_selected}.npy")
 
@@ -106,7 +113,7 @@ def plot_prediction_graph(experiment_path, sensor_selected):
             dtick=50
         )
         fig.update_layout(
-            title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin) |')} ",
+            title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime(f'%Hh%Mmin) | Step : {slider} |')} ",
             title_font=dict(size=28),
             legend=dict(title='Legends', font=dict(size=16))
         )
@@ -118,18 +125,13 @@ def plot_prediction_graph(experiment_path, sensor_selected):
     color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
 
     render_confidence_interval = st.radio("Render confidence interval", [1, 0], index=1, format_func=(lambda x: "Yes" if x == 1 else "No"))
+    st.subheader(f"working on sensor {params.nodes_to_filter[int(sensor_selected)]}")
 
     # FEDERATED
     fed_fig = plot_graph_slider(color_fed, 'Federated', "Federated Prediction", y_pred_fed, rmse_fed, slider)
 
     # LOCAL
     local_fig = plot_graph_slider(color_local, 'Local', "Local Prediction", y_pred, rmse_local, slider)
-
-    annotated_text(
-        "A lower RMSE value indicates a better prediction. The ",
-        ("green", "", "#75ff5b"), " prediction",
-        " is better than the ",
-        ("red", "", "#fe7597"), " one because it has a lower RMSE value")
 
     with st.spinner('Plotting...'):
         col1, col2 = st.columns(2)
@@ -143,7 +145,16 @@ def plot_prediction_graph(experiment_path, sensor_selected):
 # Main
 #######################################################################
 def prediction_graph_sensor(path_experiment_selected, sensor_selected):
-    st.header("Predictions Graph")
+    st.subheader("Predictions Graph")
+    st.write("""
+            * On this page select two experiments to compare them.
+                * In the table, you will find the general statistics for both the Local version and\\
+                the Federated version on differents metrics. On the left the left model and on the\\
+                right the other model.
+                * In the box plot, you will see the distribution of the RMSE values.
+            """)
+    st.divider()
+
     if (path_experiment_selected is not None):
         if (path.exists(f'{path_experiment_selected}/y_true_local_{sensor_selected}.npy') and
             path.exists(f"{path_experiment_selected}/y_pred_fed_{sensor_selected}.npy")):
