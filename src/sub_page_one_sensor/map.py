@@ -97,7 +97,7 @@ def plot_map(experiment_path, mapping_sensor_with_nodes, sensor_selected):
             """)
     st.image("data/light_blue_marker.png", width=60)
     st.markdown("""
-                The sensor selectioned in \"Choose Captor\"
+                The sensor selectioned in \"Choose the sensor\"
                 """)
     st.divider()
 
