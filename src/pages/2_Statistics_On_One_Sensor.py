@@ -9,9 +9,9 @@ import pandas as pd
 
 
 from utils_streamlit_app import selection_of_experiment, style_dataframe
-from sub_page_one_sensor.box_plot import box_plot_sensor
-from sub_page_one_sensor.predictions_graph import prediction_graph_sensor
-from sub_page_one_sensor.map import map_sensors
+from sub_pages_one_sensor.box_plot import box_plot_sensor
+from sub_pages_one_sensor.predictions_graph import prediction_graph_sensor
+from sub_pages_one_sensor.map import map_sensors
 
 
 st.set_page_config(layout="wide")
