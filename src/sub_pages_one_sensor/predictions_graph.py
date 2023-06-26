@@ -4,7 +4,6 @@
 from os import path
 
 
-import json
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -14,28 +13,34 @@ from annotated_text import annotated_text
 
 from metrics import rmse
 from config import Params
-from utils_streamlit_app import load_numpy, selection_of_experiment
-from utils_streamlit_app import get_color_fed_vs_local, style_dataframe
-
-st.set_page_config(layout="wide")
+from utils_streamlit_app import load_numpy
+from utils_streamlit_app import get_color_fed_vs_local
 
 
 #######################################################################
 # Function(s)
 #######################################################################
-def plot_prediction_graph(experiment_path):
-    test_set = load_numpy(f"{experiment_path}/test_data_{mapping_sensor_with_nodes[sensor_select]}.npy")
+def plot_prediction_graph(experiment_path, sensor_selected):
+    annotated_text(
+        "A lower RMSE value indicates a better prediction. The ",
+        ("green", "", "#75ff5b"), " prediction",
+        " is better than the ",
+        ("red", "", "#fe7597"), " one because it has a lower RMSE value")
+    st.divider()
 
-    y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy")
-    y_pred = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor_select]}.npy")
-    y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor_select]}.npy")
+    params = Params(f"{experiment_path}/config.json")
+    test_set = load_numpy(f"{experiment_path}/test_data_{sensor_selected}.npy")
 
-    index = load_numpy(f"{experiment_path}/index_{mapping_sensor_with_nodes[sensor_select]}.npy")
+    y_true = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}.npy")
+    y_pred = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}.npy")
+    y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}.npy")
+
+    index = load_numpy(f"{experiment_path}/index_{sensor_selected}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
-    slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0)
+    slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0, key="MAP_and_Graph")
 
-    def plot_graph(color, label, title, y_pred, rmse_value, i):
+    def plot_graph_slider(color, label, title, y_pred, rmse_value, i):
         df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
         df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] < index[i + params.window_size]))
         df['y_true'] = df['Traffic Flow'].where((df['Time'] >= index[i + params.window_size - 1]))
@@ -108,7 +113,7 @@ def plot_prediction_graph(experiment_path):
             dtick=50
         )
         fig.update_layout(
-            title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin) |')} ",
+            title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime(f'%Hh%Mmin) | Step : {slider} |')} ",
             title_font=dict(size=28),
             legend=dict(title='Legends', font=dict(size=16))
         )
@@ -120,18 +125,13 @@ def plot_prediction_graph(experiment_path):
     color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
 
     render_confidence_interval = st.radio("Render confidence interval", [1, 0], index=1, format_func=(lambda x: "Yes" if x == 1 else "No"))
+    st.subheader(f"working on sensor {params.nodes_to_filter[int(sensor_selected)]}")
 
     # FEDERATED
-    fed_fig = plot_graph(color_fed, 'Federated', "Federated Prediction", y_pred_fed, rmse_fed, slider)
+    fed_fig = plot_graph_slider(color_fed, 'Federated', "Federated Prediction", y_pred_fed, rmse_fed, slider)
 
     # LOCAL
-    local_fig = plot_graph(color_local, 'Local', "Local Prediction", y_pred, rmse_local, slider)
-
-    annotated_text(
-        "A lower RMSE value indicates a better prediction. The ",
-        ("green", "", "#75ff5b"), " prediction",
-        " is better than the ",
-        ("red", "", "#fe7597"), " one because it has a lower RMSE value")
+    local_fig = plot_graph_slider(color_local, 'Local', "Local Prediction", y_pred, rmse_local, slider)
 
     with st.spinner('Plotting...'):
         col1, col2 = st.columns(2)
@@ -144,41 +144,18 @@ def plot_prediction_graph(experiment_path):
 #######################################################################
 # Main
 #######################################################################
-st.header("Predictions Graph")
+def prediction_graph_sensor(path_experiment_selected, sensor_selected):
+    st.subheader("Predictions Graph")
+    st.write("""
+            * On this page select two experiments to compare them.
+                * In the table, you will find the general statistics for both the Local version and\\
+                the Federated version on differents metrics. On the left the left model and on the\\
+                right the other model.
+                * In the box plot, you will see the distribution of the RMSE values.
+            """)
+    st.divider()
 
-path_experiment_selected = selection_of_experiment()
-if (path_experiment_selected is not None):
-    with open(f"{path_experiment_selected}/test.json") as f:
-        results = json.load(f)
-    with open(f"{path_experiment_selected}/config.json") as f:
-        config = json.load(f)
-
-    mapping_sensor_with_nodes = {}
-    for node in results.keys():
-        mapping_sensor_with_nodes[config["nodes_to_filter"][int(node)]] = node
-
-    sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys())
-
-    metrics = list(results[mapping_sensor_with_nodes[sensor_select]]["local_only"].keys())
-    multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
-
-    local_node = []
-    if "local_only" in results[mapping_sensor_with_nodes[sensor_select]].keys():
-        local_node = results[mapping_sensor_with_nodes[sensor_select]]["local_only"]
-        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["sensor in Local"])
-
-    federated_node = []
-    if "Federated" in results[mapping_sensor_with_nodes[sensor_select]].keys():
-        federated_node = results[mapping_sensor_with_nodes[sensor_select]]["Federated"]
-        federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["sensor in Federation"])
-
-    st.subheader("sensor in Federation vs sensor in Local")
-    fed_local_node = pd.concat((federated_node, local_node), axis=0)
-    st.table(fed_local_node.style.set_table_styles(style_dataframe(fed_local_node)).format("{:.2f}"))
-
-    params = Params(f'{path_experiment_selected}/config.json')
-    if (path.exists(f'{path_experiment_selected}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy') and
-        path.exists(f"{path_experiment_selected}/y_pred_fed_{mapping_sensor_with_nodes[sensor_select]}.npy")):
-        plot_prediction_graph(path_experiment_selected)
-    else:
-        st.write("ERROR")
+    if (path_experiment_selected is not None):
+        if (path.exists(f'{path_experiment_selected}/y_true_local_{sensor_selected}.npy') and
+            path.exists(f"{path_experiment_selected}/y_pred_fed_{sensor_selected}.npy")):
+            plot_prediction_graph(path_experiment_selected, sensor_selected)

@@ -9,7 +9,7 @@ from pathlib import PurePath
 #  A dictionary to map the options to their aliases
 #  Add here the parameters that you want the user use to filter among all the experiments
 OPTION_ALIASES = {
-    "time_serie_percentage_length": "Choose the time series length used to train the model",
+    "time_serie_percentage_length": "%time series used",
     "number_of_nodes": "Choose the number of sensors",
     "window_size": "Choose the windows size",
     "prediction_horizon": "Choose how far you want to see in the future",
