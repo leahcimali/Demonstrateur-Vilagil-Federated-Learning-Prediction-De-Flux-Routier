@@ -32,7 +32,7 @@ def plot_prediction_graph(experiment_path, sensor_selected):
     test_set = load_numpy(f"{experiment_path}/test_data_{sensor_selected}.npy")
 
     y_true = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}.npy")
-    y_pred = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}.npy")
+    y_pred_local = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}.npy")
     y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}.npy")
 
     index = load_numpy(f"{experiment_path}/index_{sensor_selected}.npy")
@@ -40,18 +40,23 @@ def plot_prediction_graph(experiment_path, sensor_selected):
 
     slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0, key="MAP_and_Graph")
 
-    def plot_graph_slider(color, label, title, y_pred, rmse_value, i):
+    def plot_graph_slider(y_pred_fed, y_pred_local, i):
+        rmse_fed = rmse(y_true[slider, :].flatten(), y_pred_fed[slider, :].flatten())
+        rmse_local = rmse(y_true[slider, :].flatten(), y_pred_local[slider, :].flatten())
+
+        color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
+
         df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
         df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] < index[i + params.window_size]))
         df['y_true'] = df['Traffic Flow'].where((df['Time'] >= index[i + params.window_size - 1]))
-        df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
-        df[f"y_pred_{label}_link_window"] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i]])
-        df[f"y_pred_{label}_link_window"].at[params.window_size - 1] = df['Window'].iloc[params.window_size - 1]
 
-        #  std_true = np.std(df['y_true'].loc[params.window_size:])
-        residuals = df['y_true'].to_numpy()[params.window_size:] - df[f'y_pred_{label}'].to_numpy()[params.window_size:]
-        rmsfe = np.sqrt(sum([x**2 for x in residuals]) / len(residuals))
-        confidence_interval = 1.96 * rmsfe
+        df['y_pred_federation'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred_fed[i, :]])
+        df["y_pred_federation_link_window"] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred_fed[i]])
+        df["y_pred_federation_link_window"].at[params.window_size - 1] = df['Window'].iloc[params.window_size - 1]
+
+        df['y_pred_local'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred_local[i, :]])
+        df["y_pred_local_link_window"] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred_local[i]])
+        df["y_pred_local_link_window"].at[params.window_size - 1] = df['Window'].iloc[params.window_size - 1]
 
         fig = px.line(
             df, x='Time',
@@ -67,23 +72,31 @@ def plot_prediction_graph(experiment_path, sensor_selected):
         )
         fig.add_scatter(
             x=df['Time'],
-            y=df[f'y_pred_{label}'],
+            y=df['y_pred_federation'],
             mode='markers+lines',
-            marker=dict(color=color),
-            name=f'{label} RMSE : {rmse_value:.2f}'
+            marker=dict(color=color_fed, symbol="x", size=7),
+            name=f'Federation RMSE : {rmse_fed:.2f}'
         )
         fig.add_scatter(
             x=df['Time'],
-            y=df[f"y_pred_{label}_link_window"],
+            y=df["y_pred_federation_link_window"],
             mode='lines',
-            marker=dict(color=color),
+            marker=dict(color=color_fed),
             showlegend=False
         )
-        fig.add_bar(
+        fig.add_scatter(
             x=df['Time'],
-            y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])),
-            name='Absolute Error',
-            marker=dict(color="#FFAB55")
+            y=df['y_pred_local'],
+            mode='markers+lines',
+            marker=dict(color=color_local, symbol="circle-open", size=7),
+            name=f'Local RMSE : {rmse_local:.2f}'
+        )
+        fig.add_scatter(
+            x=df['Time'],
+            y=df["y_pred_local_link_window"],
+            mode='lines',
+            marker=dict(color=color_local),
+            showlegend=False
         )
         fig.add_vrect(
             x0=index[i],
@@ -92,18 +105,6 @@ def plot_prediction_graph(experiment_path, sensor_selected):
             opacity=0.2,
             line_width=0
         )
-        if render_confidence_interval:
-            fig.add_scatter(
-                x=np.concatenate([df['Time'], df['Time'][::-1]]),
-                y=np.concatenate([df['y_true'] - confidence_interval, df['y_true'][::-1] + confidence_interval]),
-                fill='toself',
-                fillcolor='rgb(50,100,100)',
-                line=dict(color='#000000'),
-                opacity=0.3,
-                hoverinfo='skip',
-                showlegend=True,
-                name="Confidence Interval"
-            )
         fig.update_xaxes(
             title='Time',
             tickformat='%H:%M',
@@ -111,36 +112,22 @@ def plot_prediction_graph(experiment_path, sensor_selected):
         )
         fig.update_yaxes(
             title="Traffic Flow",
-            range=[min(min(y_true.flatten()), min(y_pred.flatten())), max(max(y_true.flatten()), max(y_pred.flatten()))],
+            range=[min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten())))), max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))],
             dtick=50
         )
         fig.update_layout(
-            title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime(f'%Hh%Mmin) | Step : {slider} |')} ",
+            title=f"| Federation vs Local | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime(f'%Hh%Mmin) | Step : {slider} |')} ",
             title_font=dict(size=28),
             legend=dict(title='Legends', font=dict(size=16))
         )
         return fig
 
-    rmse_local = rmse(y_true[slider, :].flatten(), y_pred[slider, :].flatten())
-    rmse_fed = rmse(y_true[slider, :].flatten(), y_pred_fed[slider, :].flatten())
-
-    color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
-
-    render_confidence_interval = st.radio("Render confidence interval", [1, 0], index=1, format_func=(lambda x: "Yes" if x == 1 else "No"))
     st.subheader(f"working on sensor {params.nodes_to_filter[int(sensor_selected)]}")
 
-    # FEDERATED
-    fed_fig = plot_graph_slider(color_fed, 'Federated', "Federated Prediction", y_pred_fed, rmse_fed, slider)
-
-    # LOCAL
-    local_fig = plot_graph_slider(color_local, 'Local', "Local Prediction", y_pred, rmse_local, slider)
+    fig_fed_local = plot_graph_slider(y_pred_fed, y_pred_local, slider)
 
     with st.spinner('Plotting...'):
-        col1, col2 = st.columns(2)
-        #  with col1:
-        st.plotly_chart(fed_fig, use_container_width=True)
-        #  with col2:
-        st.plotly_chart(local_fig, use_container_width=True)
+        st.plotly_chart(fig_fed_local, use_container_width=True)
 
 
 #######################################################################
