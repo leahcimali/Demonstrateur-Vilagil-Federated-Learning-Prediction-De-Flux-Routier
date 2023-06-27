@@ -60,10 +60,6 @@ def plot_map(experiment_path, mapping_sensor_with_nodes, sensor_selected):
             in average on the 12 points predicted the models have an accuracy\\
             equals to 98%.
             """)
-
-    st.markdown("""""")
-    st.image("data/light_blue_marker.png", width=60)
-    st.markdown("The sensor selected in \"Choose the sensor\"")
     st.divider()
 
     params = Params(f'{experiment_path}/config.json')
@@ -72,17 +68,17 @@ def plot_map(experiment_path, mapping_sensor_with_nodes, sensor_selected):
 
     slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0, key="MAP_and_Graph")
 
-    seattle_map_global = folium.Map(location=[47.6776, -122.30064], zoom_start=15, zoomSnap=0.25)
-    seattle_map_local = folium.Map(location=[47.67763, -122.30064], zoom_start=15, zoomSnap=0.25)
-
     sensors_loc = {}
     seattle_roads_crop = [SEATTLE_ROADS[i] for i in range(len(mapping_sensor_with_nodes.keys()))]
 
     for sensor, locations in zip(mapping_sensor_with_nodes.keys(), seattle_roads_crop):
         sensors_loc[sensor] = locations
 
-    add_sensors_to_map(sensors_loc, params.nodes_to_filter[int(sensor_selected)], seattle_map_global)
-    add_sensors_to_map(sensors_loc, params.nodes_to_filter[int(sensor_selected)], seattle_map_local)
+    seattle_map_global = folium.Map(location=sensors_loc[params.nodes_to_filter[int(sensor_selected)]], zoom_start=15, zoomSnap=0.25)
+    seattle_map_local = folium.Map(location=sensors_loc[params.nodes_to_filter[int(sensor_selected)]], zoom_start=15, zoomSnap=0.25)
+
+    folium.Marker(location=sensors_loc[params.nodes_to_filter[int(sensor_selected)]], tooltip=params.nodes_to_filter[int(sensor_selected)], icon=folium.Icon(color="black")).add_to(seattle_map_global)
+    folium.Marker(location=sensors_loc[params.nodes_to_filter[int(sensor_selected)]], tooltip=params.nodes_to_filter[int(sensor_selected)], icon=folium.Icon(color="black")).add_to(seattle_map_local)
 
     def plot_map_slider(y_true, y_pred, y_pred_fed, i, coords):
 
@@ -93,14 +89,13 @@ def plot_map(experiment_path, mapping_sensor_with_nodes, sensor_selected):
         create_circle_precision_predict(coords, maape_computed_local, seattle_map_local, color_local)
         create_circle_precision_predict(coords, maape_computed_fed, seattle_map_global, color_fed)
 
-    for sensor in mapping_sensor_with_nodes.keys():
-        y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor]}.npy")
-        y_pred = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor]}.npy")
-        y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}.npy")
-        plot_map_slider(y_true, y_pred, y_pred_fed, slider, sensors_loc[sensor])
+    y_true = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}.npy")
+    y_pred = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}.npy")
+    y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}.npy")
+    plot_map_slider(y_true, y_pred, y_pred_fed, slider, sensors_loc[params.nodes_to_filter[int(sensor_selected)]])
 
-    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(30, 30))
-    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(30, 30))
+    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(90, 90))
+    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(90, 90))
 
     st.header(f"| {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime(f'%Hh%Mmin) | Step : {slider} |')}")
     col1, col2 = st.columns((0.5, 0.5), gap="small")
@@ -112,23 +107,14 @@ def plot_map(experiment_path, mapping_sensor_with_nodes, sensor_selected):
         folium_static(seattle_map_local, width=WIDTH / 2 - 300)  # To fix the overlapping effect (handmade solution)
 
 
-def add_sensors_to_map(sensors_loc, sensor_selected, map_folium):
-    for sensor in sensors_loc.keys():
-        tooltip = f"Road: {sensor}"
-        if (sensor_selected == sensor):
-            folium.Marker(location=sensors_loc[sensor], tooltip=tooltip, icon=folium.Icon(color="lightblue")).add_to(map_folium)
-        else:
-            folium.Marker(location=sensors_loc[sensor], tooltip=tooltip, icon=folium.Icon(color="black")).add_to(map_folium)
-
-
 #######################################################################
 # Main
 #######################################################################
-def map_sensors(experiment_path, sensor_selected):
+def single_sensor_map_sensor(experiment_path, sensor_selected):
     st.subheader("Map")
     st.write("""
                 * On this page select one experiment.
-                    * On the map, you will find the sensors location and their accuracy.
+                    * On the map, you will find sensor the selected location location and its accuracy.
                 """)
     st.divider()
 

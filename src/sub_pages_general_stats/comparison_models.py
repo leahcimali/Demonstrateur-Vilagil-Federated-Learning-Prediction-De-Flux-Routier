@@ -169,12 +169,11 @@ def comparison_models():
             st.subheader("Local Version")
             st.table(local_results_model_2_stats.style.set_table_styles(style_dataframe(local_results_model_2_stats)).format("{:.2f}"))
             st.plotly_chart(
-                box_plot_comparison(federated_results_model_2_stats["RMSE"],
-                                    local_results_model_2_stats["RMSE"],
+                box_plot_comparison(federated_results_model_2["RMSE"],
+                                    local_results_model_2["RMSE"],
                                     "Federated",
                                     "Local",
-                                    config_1["model"],
+                                    config_2["model"],
                                     "Version",
-                                    "RMSE Values"
-                                    ),
+                                    "RMSE Values"),
                 use_container_width=True)

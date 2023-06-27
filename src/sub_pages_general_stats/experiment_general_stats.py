@@ -45,7 +45,7 @@ def experiment_general_stats():
                 local_node = results[mapping_sensor_with_node[sensor]]["local_only"]
                 results_sensor_local.append(local_node)
 
-        metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
+        metrics = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
 
         st.subheader(f"A comparison between federated and local version | Average on {len(nodes)} sensors")
         st.subheader("_It's a general statistic including all the sensors in the calculation_")

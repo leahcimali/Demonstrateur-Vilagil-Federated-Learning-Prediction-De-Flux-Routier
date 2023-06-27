@@ -48,8 +48,10 @@ def plot_prediction_graph(experiment_path, sensor_selected):
         df[f"y_pred_{label}_link_window"] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i]])
         df[f"y_pred_{label}_link_window"].at[params.window_size - 1] = df['Window'].iloc[params.window_size - 1]
 
-        std_true = np.std(df['y_true'].loc[params.window_size:])
-        confidence_interval = 1.96 * std_true
+        #  std_true = np.std(df['y_true'].loc[params.window_size:])
+        residuals = df['y_true'].to_numpy()[params.window_size:] - df[f'y_pred_{label}'].to_numpy()[params.window_size:]
+        rmsfe = np.sqrt(sum([x**2 for x in residuals]) / len(residuals))
+        confidence_interval = 1.96 * rmsfe
 
         fig = px.line(
             df, x='Time',

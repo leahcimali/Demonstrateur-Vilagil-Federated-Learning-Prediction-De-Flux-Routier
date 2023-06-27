@@ -11,7 +11,7 @@ import pandas as pd
 from utils_streamlit_app import selection_of_experiment, style_dataframe
 from sub_pages_one_sensor.box_plot import box_plot_sensor
 from sub_pages_one_sensor.predictions_graph import prediction_graph_sensor
-from sub_pages_one_sensor.map import map_sensors
+from sub_pages_one_sensor.single_sensor_map import single_sensor_map_sensor
 
 
 st.set_page_config(layout="wide")
@@ -23,7 +23,7 @@ st.set_page_config(layout="wide")
 PAGES = {
     "Prediction sensor": prediction_graph_sensor,
     "Boxplot sensor": box_plot_sensor,
-    "Map of sensors": map_sensors
+    "Map of sensor": single_sensor_map_sensor
 }
 
 
@@ -33,15 +33,15 @@ PAGES = {
 st.header("Statistics on one sensor")
 st.divider()
 st.markdown("""
-            This is the statistics page for a single sensor. Here, you can view metrics
-            for the sensor of your choice.
+            This is the statistics page for a single sensor. On the sidebar,\\
+            you can view different visualizations.
             """)
 st.divider()
 
 st.sidebar.title("Statistics on one sensor")
 with st.sidebar:
     page_selectioned = st.radio(
-        "Choose what you want to see",
+        "Choose the visualization",
         PAGES.keys(),
         index=0
     )
@@ -61,7 +61,7 @@ if (path_experiment_selected is not None):
 
     st.divider()
 
-    sensor_selected = st.selectbox('Choose the sensor', mapping_sensor_with_node.keys())
+    sensor_selected = st.sidebar.selectbox('Choose the sensor', mapping_sensor_with_node.keys())
 
     metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
 
