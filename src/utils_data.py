@@ -324,7 +324,8 @@ def local_dataset(df, nodes=[], perc_train = 0.7, perc_val = 0.15,  window_size 
     return data_dict
 
 
-def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_and_reduce = False, normalize = False, sort_by_mean = True):
+def preprocess_PeMS_data(df_PeMS, time_serie_percentage_length, df_distance, init_node : int = 0, n_neighbors : int = 99,
+                        smooth = True, center_and_reduce = False, normalize = False, sort_by_mean = True):
     from src.utils_graph import create_graph, subgraph_dijkstra, compute_adjacency_matrix
 
     """
@@ -332,11 +333,30 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
 
     Parameters
     ----------
+    time_serie_percentage_length: float
+        Percentage of the time series we want to keep for training
+
+
+    df_distance: pandas.DataFrame
+        Dataframe with the distance between nodes
+    
     init_node : int
         Index of the node we want to start with
 
     n_neighbors: int
         Number of nearest neighbors to consider
+
+    smooth: boolean
+        Flag for smoothing the time series
+
+    center_and_reduce: boolean
+        Flag for centering and reducing the data
+
+    normalize: boolean
+        Flag for normalizing the data
+
+    sort_by_mean: boolean
+        Flag for sorting the data by mean
 
     Returns
     ----------
@@ -349,6 +369,8 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
     meanstd_dict : dictionary
         Dictionary containing the mean and std of the prenormalize DataFrame
     """
+
+    df_PeMS = df_PeMS[:int(len(df_PeMS)* time_serie_percentage_length)]
 
     # Filter nodes to retain only n nearest neighbors
     graph = create_graph(df_distance)
