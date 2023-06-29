@@ -188,13 +188,13 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
 
 def get_color_fed_vs_local(fed_value, local_value, superior=True):
     red = "#fe7597"
-    green = "#75ff5b"
+    green = "#00dd00"
     if (superior):
         return (green, red) if ((fed_value) >= (local_value)) else (red, green)
     return (green, red) if ((fed_value) < (local_value)) else (red, green)
 
 
-def style_dataframe(df):
+def style_dataframe(df, colors=None, column_index=None):
     styles = []
     for i in range(len(df)):
         if i % 2 == 0:
@@ -206,6 +206,14 @@ def style_dataframe(df):
             styles.append({
                 'selector': f'tbody tr:nth-child({i+1})',
                 'props': [('background-color', 'rgba(230, 230, 230, 0.8)'), ('color', 'black')],
+            })
+        if (colors is not None and column_index is not None):
+            styles.append({
+                'selector': f'tbody tr:nth-child({i+1}) > :nth-child({column_index})',
+                'props': [
+                    ('font-weight', 'bold'),
+                    ('color', f'{colors[i]}'),
+                ],
             })
     styles.extend(
         (

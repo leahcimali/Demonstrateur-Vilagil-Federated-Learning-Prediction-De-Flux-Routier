@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 
 
-from utils_streamlit_app import selection_of_experiment, style_dataframe
+from utils_streamlit_app import get_color_fed_vs_local, selection_of_experiment, style_dataframe
 
 
 #######################################################################
@@ -60,13 +60,22 @@ def experiment_general_stats():
             stats_local_ver.drop(columns={'count'}, inplace=True)
             stats_local_ver = stats_local_ver.applymap(lambda x: '{:.2f}'.format(x))
 
-            # Create multi-level index for merging
-            common_indexes = stats_local_ver.index.intersection(stats_fed_ver.index)
-            multi_index = pd.MultiIndex.from_product([common_indexes, ['Local', 'Federated']], names=['Index', 'Version'])
+            color_fed = []
+            color_local = []
+            for i in range(len(metrics)):
+                if (i < 3):  # because "Superior Pred %" metric needs to be superior=True
+                    col_fed, col_local = get_color_fed_vs_local(stats_fed_ver.iloc[i]["mean"], stats_local_ver.iloc[i]["mean"], superior=False)
+                else:
+                    col_fed, col_local = get_color_fed_vs_local(stats_fed_ver.iloc[i]["mean"], stats_local_ver.iloc[i]["mean"], superior=True)
+                color_fed.append(col_fed)
+                color_local.append(col_local)
 
-            merged_stats = pd.concat([stats_local_ver, stats_fed_ver], axis=0)
-
-            merged_stats.index = multi_index
-
-            # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
-            st.table(merged_stats.style.set_table_styles(style_dataframe(merged_stats)))
+            c1, c2 = st.columns(2, gap="small")
+            with c1:
+                st.subheader("Federated")
+                # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
+                st.table(stats_fed_ver.style.set_table_styles(style_dataframe(stats_fed_ver, colors=color_fed, column_index=2)))
+            with c2:
+                st.subheader("Local")
+                # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
+                st.table(stats_local_ver.style.set_table_styles(style_dataframe(stats_local_ver, colors=color_local, column_index=2)))
