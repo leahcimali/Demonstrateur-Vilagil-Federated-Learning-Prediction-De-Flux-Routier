@@ -69,61 +69,57 @@ def fedavg(main_model, model_dict, number_of_nodes):
     return new_model
 
 
-
-
-def fed_training_plan(main_model, data_dict, rounds=3, epoch=200, model_path= './'):
-    
+def fed_training_plan(main_model, data_dict, rounds=3, epoch=200, model_path='./'):
     """
     Controler function to launch federated learning
-    
+
     Parameters
     ----------
-    main_model: 
+    main_model:
         Define the central node model :
 
     data_dict : Dictionary
-      Contains training and validation data for the different FL nodes
+    Contains training and validation data for the different FL nodes
 
     rounds : int
         Number of federated learning rounds
 
-     
     epoch : int
         Number of training epochs in each round
 
     model_path : str
-        Define the path where to save the models 
-    
+        Define the path where to save the models
+
     """
     from src.utils_training import testmodel
     nodes = len(data_dict)
-    
-    model_dict = setup_models(nodes,main_model)
+
+    model_dict = setup_models(nodes, main_model)
     best_node_loss = [float('inf') for i in range(nodes)]
     node_loss = [0 for i in range(nodes)]
     best_model_round = [0 for i in range(nodes)]
-    for round in range(1,rounds+1):
-    
+    for round in range(1, rounds + 1):
+
         print('Init round {} :'.format(round))
-    
+
         model_dict = send_model(main_model, model_dict, nodes)
-    
+
         for node in range(nodes):
             print('Training node {} for round {}'.format(node, round))
             model_dict[node], _ , _ = train_model(model_dict[node], data_dict[node]['train'], data_dict[node]['val'], f'{model_path}local{node}_round{round}.pth', epoch, remove = True)
-    
+
         print('FedAVG for round {}:'.format(round))
-    
+
         main_model = fedavg(main_model, model_dict, nodes)
         for node in range(nodes):
             y_true, y_pred = testmodel(main_model, data_dict[node]["val"])
-            node_loss[node]= mean_squared_error(y_true.flatten(),y_pred.flatten())
+            node_loss[node] = mean_squared_error(y_true.flatten(), y_pred.flatten())
             print(f"Node {node} Validation loss :{node_loss[node]:.4f}")
-            if node_loss[node]< best_node_loss[node] :
+            if node_loss[node] < best_node_loss[node]:
                 best_node_loss[node] = node_loss[node]
-                best_model_round[node] = round 
+                best_model_round[node] = round
                 print(f'Better model founded at round {round} for node {node}!')
-                torch.save(main_model.state_dict(), f'{model_path}bestmodel_node{node}.pth')
+                torch.save(main_model.state_dict(), model_path / f'bestmodel_node{node}.pth')
         print('Done')
         # torch.save(main_model.state_dict(), f'{model_path}model_round_{round}.pth')
     print("FedAvg All Rounds Complete !")
