@@ -108,17 +108,27 @@ def plot_prediction_graph(experiment_path, sensor_selected):
         fig.update_xaxes(
             title='Time',
             tickformat='%H:%M',
+            range=(index[i], index[i + params.window_size + params.prediction_horizon]),
             dtick=3600000
         )
         fig.update_yaxes(
             title="Traffic Flow",
-            range=[min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten())))), max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))],
+            range=[min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten())))),
+                    max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))],
             dtick=50
         )
         fig.update_layout(
-            title=f"| Federation vs Local | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime(f'%Hh%Mmin) | Step : {slider} |')} ",
-            title_font=dict(size=28),
-            legend=dict(title='Legends', font=dict(size=16))
+            title=f"| Federation vs Local | Day: {index[slider + params.window_size].strftime('%Y-%m-%d')} | Time prediction: {int(params.prediction_horizon * 5 / 60)}h ({index[slider + params.window_size].strftime('%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin)')} | Step: {slider} |",
+            title_font=dict(size=25),
+            legend=dict(title='Legends', font=dict(size=16)),
+        )
+        fig.update_layout(
+            legend=dict(
+                title='Legends',
+                font=dict(size=15),
+                yanchor='bottom',
+                xanchor='right'
+            )
         )
         return fig
 
@@ -148,3 +158,4 @@ def prediction_graph_sensor(path_experiment_selected, sensor_selected):
         if (path.exists(f'{path_experiment_selected}/y_true_local_{sensor_selected}.npy') and
             path.exists(f"{path_experiment_selected}/y_pred_fed_{sensor_selected}.npy")):
             plot_prediction_graph(path_experiment_selected, sensor_selected)
+
