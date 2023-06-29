@@ -187,7 +187,7 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
 
 
 def get_color_fed_vs_local(fed_value, local_value, superior=True):
-    red = "#fe7597"
+    red = "#fe4269"
     green = "#00dd00"
     if (superior):
         return (green, red) if ((fed_value) >= (local_value)) else (red, green)
