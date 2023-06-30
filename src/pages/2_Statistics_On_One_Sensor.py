@@ -26,6 +26,8 @@ PAGES = {
     "Map of sensor": single_sensor_map_sensor
 }
 
+METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
+
 
 #######################################################################
 # Main
@@ -63,21 +65,19 @@ if (path_experiment_selected is not None):
 
     sensor_selected = st.sidebar.selectbox('Choose the sensor', mapping_sensor_with_node.keys())
 
-    metrics = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
-
     results_sensor_federated = []
     if "Federated" in results[mapping_sensor_with_node[sensor_selected]].keys():
-        results_sensor_federated = pd.DataFrame(results[mapping_sensor_with_node[sensor_selected]]["Federated"], columns=metrics, index=["Value"])
+        results_sensor_federated = pd.DataFrame(results[mapping_sensor_with_node[sensor_selected]]["Federated"], columns=METRICS, index=["Value"])
         stats_sensor_federated = results_sensor_federated.T
 
     results_sensor_local = []
     if "local_only" in results[mapping_sensor_with_node[sensor_selected]].keys():
-        results_sensor_local = pd.DataFrame(results[mapping_sensor_with_node[sensor_selected]]["local_only"], columns=metrics, index=["Value"])
+        results_sensor_local = pd.DataFrame(results[mapping_sensor_with_node[sensor_selected]]["local_only"], columns=METRICS, index=["Value"])
         stats_sensor_local = results_sensor_local.T
 
     color_fed = []
     color_local = []
-    for i in range(len(metrics)):
+    for i in range(len(METRICS)):
         if (i < 3):  # because "Superior Pred %" metric needs to be superior=True
             col_fed, col_local = get_color_fed_vs_local(stats_sensor_federated.iloc[i]["Value"], stats_sensor_local.iloc[i]["Value"], superior=False)
         else:

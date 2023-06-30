@@ -13,6 +13,12 @@ from utils_streamlit_app import format_radio, get_color_fed_vs_local, style_data
 
 
 #######################################################################
+# Constant(s)
+#######################################################################
+METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
+
+
+#######################################################################
 # Function(s)
 #######################################################################
 def compare_config(path_file_1, path_file_2):
@@ -99,8 +105,6 @@ def comparison_models():
         with open(f"{path_model_2}/config.json") as f:
             config_2 = json.load(f)
 
-        metrics = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
-
         federated_results_model_1 = []
         local_results_model_1 = []
         for i in range(config_1["number_of_nodes"]):
@@ -109,8 +113,8 @@ def comparison_models():
             if "local_only" in results_1["0"].keys():  # e.g. keys = ['Federated', 'local_only']
                 local_results_model_1.append(results_1[str(i)]["local_only"])
 
-        federated_results_model_1 = pd.DataFrame(federated_results_model_1, columns=metrics)
-        local_results_model_1 = pd.DataFrame(local_results_model_1, columns=metrics)
+        federated_results_model_1 = pd.DataFrame(federated_results_model_1, columns=METRICS)
+        local_results_model_1 = pd.DataFrame(local_results_model_1, columns=METRICS)
 
         federated_results_model_2 = []
         local_results_model_2 = []
@@ -120,8 +124,8 @@ def comparison_models():
             if "local_only" in results_2["0"].keys():  # e.g. keys = ['Federated', 'local_only']
                 local_results_model_2.append(results_2[str(j)]["local_only"])
 
-        federated_results_model_2 = pd.DataFrame(federated_results_model_2, columns=metrics)
-        local_results_model_2 = pd.DataFrame(local_results_model_2, columns=metrics)
+        federated_results_model_2 = pd.DataFrame(federated_results_model_2, columns=METRICS)
+        local_results_model_2 = pd.DataFrame(local_results_model_2, columns=METRICS)
 
         _, c2_title_df, _ = st.columns((2, 1, 2))
 
@@ -139,7 +143,7 @@ def comparison_models():
         color_local_model_1 = []
         color_fed_model_2 = []
         color_local_model_2 = []
-        for i in range(len(metrics)):
+        for i in range(len(METRICS)):
             if (i < 3):  # because "Superior Pred %" metric needs to be superior=True
                 col_fed_model_1, col_fed_model_2 = get_color_fed_vs_local(federated_results_model_1_stats.iloc[i]["mean"], federated_results_model_2_stats.iloc[i]["mean"], superior=False)
                 col_local_model_1, col_local_model_2 = get_color_fed_vs_local(local_results_model_1_stats.iloc[i]["mean"], local_results_model_2_stats.iloc[i]["mean"], superior=False)

@@ -10,6 +10,12 @@ from utils_streamlit_app import get_color_fed_vs_local, selection_of_experiment,
 
 
 #######################################################################
+# Constant(s)
+#######################################################################
+METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
+
+
+#######################################################################
 # Main
 #######################################################################
 def experiment_general_stats():
@@ -45,24 +51,22 @@ def experiment_general_stats():
                 local_node = results[mapping_sensor_with_node[sensor]]["local_only"]
                 results_sensor_local.append(local_node)
 
-        metrics = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
-
         st.subheader(f"A comparison between federated and local version | Average on {len(nodes)} sensors")
         st.subheader("_It's a general statistic including all the sensors in the calculation_")
         if results_sensor_federated != [] and results_sensor_local != []:
-            df_federated_node = pd.DataFrame(results_sensor_federated, columns=metrics)
+            df_federated_node = pd.DataFrame(results_sensor_federated, columns=METRICS)
             stats_fed_ver = df_federated_node.describe().T
             stats_fed_ver.drop(columns={'count'}, inplace=True)
             stats_fed_ver = stats_fed_ver.applymap(lambda x: '{:.2f}'.format(x))
 
-            df_local_node = pd.DataFrame(results_sensor_local, columns=metrics)
+            df_local_node = pd.DataFrame(results_sensor_local, columns=METRICS)
             stats_local_ver = df_local_node.describe().T
             stats_local_ver.drop(columns={'count'}, inplace=True)
             stats_local_ver = stats_local_ver.applymap(lambda x: '{:.2f}'.format(x))
 
             color_fed = []
             color_local = []
-            for i in range(len(metrics)):
+            for i in range(len(METRICS)):
                 if (i < 3):  # because "Superior Pred %" metric needs to be superior=True
                     col_fed, col_local = get_color_fed_vs_local(stats_fed_ver.iloc[i]["mean"], stats_local_ver.iloc[i]["mean"], superior=False)
                 else:
