@@ -50,6 +50,20 @@ def load_numpy(path):
     return np.load(path)
 
 
+@st.cache_data
+def load_experiment_results(experiment_path):
+    with open(f"{experiment_path}/test.json") as f:
+        results = json.load(f)
+    return results
+
+
+@st.cache_data
+def load_experiment_config(experiment_path):
+    with open(f"{experiment_path}/config.json") as f:
+        config = json.load(f)
+    return config
+
+
 @st.cache_resource
 def map_path_experiments_to_params(path_files, params_config_use_for_select):
     """
@@ -180,21 +194,23 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
     """
     lat, long = marker_location
     # folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
-    folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=1, fill_color=color).add_to(map_folium)
+    folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=50, fill=True, opacity=1, fill_opacity=1, fill_color=color).add_to(map_folium)
     folium.map.Marker([lat + 0.0022, long + 0.0014], icon=folium.features.DivIcon(html=f"<div style='font-weight:bold; font-size: 15pt; color: black'>{int(value_percent * 100)}%</div>")).add_to(map_folium)
     # folium.Circle(location=[lat,long], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
     # folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
 
 
 def get_color_fed_vs_local(fed_value, local_value, superior=True):
-    red = "#fe7597"
-    green = "#75ff5b"
+    red = "#fe4269"
+    green = "#00dd00"
+    fed_value = float(fed_value)
+    local_value = float(local_value)
     if (superior):
         return (green, red) if ((fed_value) >= (local_value)) else (red, green)
     return (green, red) if ((fed_value) < (local_value)) else (red, green)
 
 
-def style_dataframe(df):
+def style_dataframe(df, colors=None, column_index=None):
     styles = []
     for i in range(len(df)):
         if i % 2 == 0:
@@ -206,6 +222,14 @@ def style_dataframe(df):
             styles.append({
                 'selector': f'tbody tr:nth-child({i+1})',
                 'props': [('background-color', 'rgba(230, 230, 230, 0.8)'), ('color', 'black')],
+            })
+        if (colors is not None and column_index is not None):
+            styles.append({
+                'selector': f'tbody tr:nth-child({i+1}) > :nth-child({column_index})',
+                'props': [
+                    ('font-weight', 'bold'),
+                    ('color', f'{colors[i]}'),
+                ],
             })
     styles.extend(
         (
@@ -223,40 +247,3 @@ def style_dataframe(df):
         )
     )
     return styles
-
-
-def switch_page(page_name: str):
-    """@CREDIT: Zachary Blackwood
-
-    Args:
-        page_name (str):
-
-    Raises:
-        RerunException:
-        ValueError:
-
-    Returns:
-        _type_:
-    """
-    from streamlit.runtime.scriptrunner import RerunData, RerunException
-    from streamlit.source_util import get_pages
-
-    def standardize_name(name: str) -> str:
-        return name.lower().replace("_", " ")
-
-    page_name = standardize_name(page_name)
-
-    pages = get_pages("streamlit_app.py")  # OR whatever your main page is called
-
-    for page_hash, config in pages.items():
-        if standardize_name(config["page_name"]) == page_name:
-            raise RerunException(
-                RerunData(
-                    page_script_hash=page_hash,
-                    page_name=page_name,
-                )
-            )
-
-    page_names = [standardize_name(config["page_name"]) for config in pages.values()]
-
-    raise ValueError(f"Could not find page {page_name}. Must be one of {page_names}")

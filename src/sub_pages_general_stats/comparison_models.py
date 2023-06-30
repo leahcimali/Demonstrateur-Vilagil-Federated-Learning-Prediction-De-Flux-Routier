@@ -9,7 +9,13 @@ import pandas as pd
 import plotly.graph_objects as go
 
 
-from utils_streamlit_app import format_radio, style_dataframe
+from utils_streamlit_app import format_radio, get_color_fed_vs_local, style_dataframe
+
+
+#######################################################################
+# Constant(s)
+#######################################################################
+METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
 
 
 #######################################################################
@@ -99,8 +105,6 @@ def comparison_models():
         with open(f"{path_model_2}/config.json") as f:
             config_2 = json.load(f)
 
-        metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
-
         federated_results_model_1 = []
         local_results_model_1 = []
         for i in range(config_1["number_of_nodes"]):
@@ -109,8 +113,8 @@ def comparison_models():
             if "local_only" in results_1["0"].keys():  # e.g. keys = ['Federated', 'local_only']
                 local_results_model_1.append(results_1[str(i)]["local_only"])
 
-        federated_results_model_1 = pd.DataFrame(federated_results_model_1, columns=metrics)
-        local_results_model_1 = pd.DataFrame(local_results_model_1, columns=metrics)
+        federated_results_model_1 = pd.DataFrame(federated_results_model_1, columns=METRICS)
+        local_results_model_1 = pd.DataFrame(local_results_model_1, columns=METRICS)
 
         federated_results_model_2 = []
         local_results_model_2 = []
@@ -120,8 +124,8 @@ def comparison_models():
             if "local_only" in results_2["0"].keys():  # e.g. keys = ['Federated', 'local_only']
                 local_results_model_2.append(results_2[str(j)]["local_only"])
 
-        federated_results_model_2 = pd.DataFrame(federated_results_model_2, columns=metrics)
-        local_results_model_2 = pd.DataFrame(local_results_model_2, columns=metrics)
+        federated_results_model_2 = pd.DataFrame(federated_results_model_2, columns=METRICS)
+        local_results_model_2 = pd.DataFrame(local_results_model_2, columns=METRICS)
 
         _, c2_title_df, _ = st.columns((2, 1, 2))
 
@@ -130,6 +134,26 @@ def comparison_models():
 
         c1_model_1, c2_model_2 = st.columns(2)
 
+        federated_results_model_1_stats = federated_results_model_1.describe().T
+        local_results_model_1_stats = local_results_model_1.describe().T
+        federated_results_model_2_stats = federated_results_model_2.describe().T
+        local_results_model_2_stats = local_results_model_2.describe().T
+
+        color_fed_model_1 = []
+        color_local_model_1 = []
+        color_fed_model_2 = []
+        color_local_model_2 = []
+        for i in range(len(METRICS)):
+            if (i < 3):  # because "Superior Pred %" metric needs to be superior=True
+                col_fed_model_1, col_fed_model_2 = get_color_fed_vs_local(federated_results_model_1_stats.iloc[i]["mean"], federated_results_model_2_stats.iloc[i]["mean"], superior=False)
+                col_local_model_1, col_local_model_2 = get_color_fed_vs_local(local_results_model_1_stats.iloc[i]["mean"], local_results_model_2_stats.iloc[i]["mean"], superior=False)
+            else:
+                col_fed_model_1, col_fed_model_2 = get_color_fed_vs_local(federated_results_model_1_stats.iloc[i]["mean"], federated_results_model_2_stats.iloc[i]["mean"], superior=True)
+                col_local_model_1, col_local_model_2 = get_color_fed_vs_local(local_results_model_1_stats.iloc[i]["mean"], local_results_model_2_stats.iloc[i]["mean"], superior=True)
+            color_fed_model_1.append(col_fed_model_1)
+            color_local_model_1.append(col_local_model_1)
+            color_fed_model_2.append(col_fed_model_2)
+            color_local_model_2.append(col_local_model_2)
         #######################################################################
         # Model 1
         #######################################################################
@@ -138,12 +162,11 @@ def comparison_models():
             st.divider()
             st.subheader(f"{model_1_name}")
             st.divider()
-            federated_results_model_1_stats = federated_results_model_1.describe().T
-            local_results_model_1_stats = local_results_model_1.describe().T
+
             st.subheader("Federated Version")
-            st.table(federated_results_model_1_stats.style.set_table_styles(style_dataframe(federated_results_model_1_stats)).format("{:.2f}"))
+            st.table(federated_results_model_1_stats.style.set_table_styles(style_dataframe(federated_results_model_1_stats, colors=color_fed_model_1, column_index=3)).format("{:.2f}"))
             st.subheader("Local Version")
-            st.table(local_results_model_1_stats.style.set_table_styles(style_dataframe(local_results_model_1_stats)).format("{:.2f}"))
+            st.table(local_results_model_1_stats.style.set_table_styles(style_dataframe(local_results_model_1_stats, colors=color_local_model_1, column_index=3)).format("{:.2f}"))
             st.plotly_chart(
                 box_plot_comparison(federated_results_model_1["RMSE"],
                                     local_results_model_1["RMSE"],
@@ -162,19 +185,16 @@ def comparison_models():
             st.divider()
             st.subheader(f"{model_2_name}")
             st.divider()
-            federated_results_model_2_stats = federated_results_model_2.describe().T
-            local_results_model_2_stats = local_results_model_2.describe().T
             st.subheader("Federated Version")
-            st.table(federated_results_model_2_stats.style.set_table_styles(style_dataframe(federated_results_model_2_stats)).format("{:.2f}"))
+            st.table(federated_results_model_2_stats.style.set_table_styles(style_dataframe(federated_results_model_2_stats, colors=color_fed_model_2, column_index=3)).format("{:.2f}"))
             st.subheader("Local Version")
-            st.table(local_results_model_2_stats.style.set_table_styles(style_dataframe(local_results_model_2_stats)).format("{:.2f}"))
+            st.table(local_results_model_2_stats.style.set_table_styles(style_dataframe(local_results_model_2_stats, colors=color_local_model_2, column_index=3)).format("{:.2f}"))
             st.plotly_chart(
-                box_plot_comparison(federated_results_model_2_stats["RMSE"],
-                                    local_results_model_2_stats["RMSE"],
+                box_plot_comparison(federated_results_model_2["RMSE"],
+                                    local_results_model_2["RMSE"],
                                     "Federated",
                                     "Local",
-                                    config_1["model"],
+                                    config_2["model"],
                                     "Version",
-                                    "RMSE Values"
-                                    ),
+                                    "RMSE Values"),
                 use_container_width=True)
