@@ -189,6 +189,8 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
 def get_color_fed_vs_local(fed_value, local_value, superior=True):
     red = "#fe4269"
     green = "#00dd00"
+    fed_value = float(fed_value)
+    local_value = float(local_value)
     if (superior):
         return (green, red) if ((fed_value) >= (local_value)) else (red, green)
     return (green, red) if ((fed_value) < (local_value)) else (red, green)
@@ -231,40 +233,3 @@ def style_dataframe(df, colors=None, column_index=None):
         )
     )
     return styles
-
-
-def switch_page(page_name: str):
-    """@CREDIT: Zachary Blackwood
-
-    Args:
-        page_name (str):
-
-    Raises:
-        RerunException:
-        ValueError:
-
-    Returns:
-        _type_:
-    """
-    from streamlit.runtime.scriptrunner import RerunData, RerunException
-    from streamlit.source_util import get_pages
-
-    def standardize_name(name: str) -> str:
-        return name.lower().replace("_", " ")
-
-    page_name = standardize_name(page_name)
-
-    pages = get_pages("streamlit_app.py")  # OR whatever your main page is called
-
-    for page_hash, config in pages.items():
-        if standardize_name(config["page_name"]) == page_name:
-            raise RerunException(
-                RerunData(
-                    page_script_hash=page_hash,
-                    page_name=page_name,
-                )
-            )
-
-    page_names = [standardize_name(config["page_name"]) for config in pages.values()]
-
-    raise ValueError(f"Could not find page {page_name}. Must be one of {page_names}")
