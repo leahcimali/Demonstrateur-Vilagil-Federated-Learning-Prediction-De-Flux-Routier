@@ -1,22 +1,19 @@
-from os import path
-
-
 import streamlit as st
 from streamlit_folium import folium_static
-import json
 import folium
 from screeninfo import get_monitors
 from annotated_text import annotated_text
 
 
 from metrics import maape
-from utils_streamlit_app import create_circle_precision_predict, get_color_fed_vs_local, selection_of_experiment
+from utils_streamlit_app import create_circle_precision_predict, get_color_fed_vs_local, selection_of_experiment, load_experiment_config, load_experiment_results
 from utils_streamlit_app import load_numpy
 
 
 #######################################################################
 # Constant(s)
 #######################################################################
+# Predefine 14 locations for sensors
 SEATTLE_ROADS = [
     [47.679470, -122.315626],
     [47.679441, -122.306665],
@@ -53,7 +50,7 @@ def add_sensors_to_map(sensors_loc, map_folium):
         folium.Marker(location=sensors_loc[sensor], tooltip=tooltip, icon=folium.Icon(color="black")).add_to(map_folium)
 
 
-def plot_map(experiment_path, mapping_sensor_with_nodes):
+def text_introduction_map():
     st.divider()
     annotated_text(
         "A higher percent indicates a better prediction. So, ",
@@ -67,43 +64,63 @@ def plot_map(experiment_path, mapping_sensor_with_nodes):
             """)
     st.divider()
 
-    seattle_map_global = folium.Map(location=[47.6776, -122.30064], zoom_start=15, zoomSnap=0.25)
-    seattle_map_local = folium.Map(location=[47.67763, -122.30064], zoom_start=15, zoomSnap=0.25)
 
+def map_sensor_to_loc(mapping_sensor_with_nodes):
     sensors_loc = {}
-    seattle_roads_crop = [SEATTLE_ROADS[i] for i in range(len(mapping_sensor_with_nodes.keys()))]
+    seattle_roads_crop_by_nb_sensor = [SEATTLE_ROADS[i] for i in range(len(mapping_sensor_with_nodes.keys()))]
 
-    for sensor, locations in zip(mapping_sensor_with_nodes.keys(), seattle_roads_crop):
+    for sensor, locations in zip(mapping_sensor_with_nodes.keys(), seattle_roads_crop_by_nb_sensor):
         sensors_loc[sensor] = locations
+    return sensors_loc
 
-    add_sensors_to_map(sensors_loc, seattle_map_global)
-    add_sensors_to_map(sensors_loc, seattle_map_local)
 
-    def plot_sensor_on_map(y_true, y_pred, y_pred_fed, coords):
-        maape_computed_local = 1 - (maape(y_true.flatten(), y_pred.flatten())) / 100.0
-        maape_computed_fed = 1 - (maape(y_true.flatten(), y_pred_fed.flatten())) / 100.0
-        color_fed, color_local = get_color_fed_vs_local(maape_computed_fed, maape_computed_local)
+def calculate_contrary_maape(y_true, y_pred):
+    maape_value = maape(y_true.flatten(), y_pred.flatten())
+    return 1 - maape_value / 100.0
 
-        create_circle_precision_predict(coords, maape_computed_local, seattle_map_local, color_local)
-        create_circle_precision_predict(coords, maape_computed_fed, seattle_map_global, color_fed)
 
-    for sensor in mapping_sensor_with_nodes.keys():
-        y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor]}.npy")
-        y_pred = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor]}.npy")
-        y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}.npy")
-        plot_sensor_on_map(y_true, y_pred, y_pred_fed, sensors_loc[sensor])
+def add_metric_on_map(y_true, y_pred_local, y_pred_fed, coords, seattle_map_fed, seattle_map_local):
+    maape_computed_fed = calculate_contrary_maape(y_true, y_pred_fed)
+    maape_computed_local = calculate_contrary_maape(y_true, y_pred_local)
 
-    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(30, 30))
-    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(30, 30))
+    color_fed, color_local = get_color_fed_vs_local(maape_computed_fed, maape_computed_local)
 
+    create_circle_precision_predict(coords, maape_computed_fed, seattle_map_fed, color_fed)
+    create_circle_precision_predict(coords, maape_computed_local, seattle_map_local, color_local)
+
+
+def render_map(seattle_map_fed, seattle_map_local):
     st.header("MAP")
     col1, col2 = st.columns((0.5, 0.5), gap="small")
     with col1:
         col1.header('Federated model results')
-        folium_static(seattle_map_global, width=WIDTH / 2 - 300)  # To fix the overlapping effect (handmade solution)
+        folium_static(seattle_map_fed, width=WIDTH / 2 - 300)  # To fix the overlapping effect (handmade solution)
     with col2:
         col2.header('Local models results')
         folium_static(seattle_map_local, width=WIDTH / 2 - 300)  # To fix the overlapping effect (handmade solution)
+
+
+def plot_map(experiment_path, mapping_sensor_with_nodes):
+    text_introduction_map()
+
+    seattle_map_fed = folium.Map(location=[47.6776, -122.30064], zoom_start=15, zoomSnap=0.25)
+    seattle_map_local = folium.Map(location=[47.67763, -122.30064], zoom_start=15, zoomSnap=0.25)
+
+    sensors_loc = map_sensor_to_loc(mapping_sensor_with_nodes)
+
+    add_sensors_to_map(sensors_loc, seattle_map_fed)
+    add_sensors_to_map(sensors_loc, seattle_map_local)
+
+    for sensor in mapping_sensor_with_nodes.keys():
+        y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor]}.npy")
+        y_pred_local = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor]}.npy")
+        y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}.npy")
+        add_metric_on_map(y_true, y_pred_local, y_pred_fed, sensors_loc[sensor], seattle_map_fed, seattle_map_local)
+
+    seattle_map_fed.fit_bounds(seattle_map_fed.get_bounds(), padding=(30, 30))
+    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(30, 30))
+
+    render_map(seattle_map_fed, seattle_map_local)
 
 
 #######################################################################
@@ -120,16 +137,11 @@ def map_of_sensors():
     path_experiment_selected = selection_of_experiment()
 
     if (path_experiment_selected is not None):
+        results = load_experiment_results(path_experiment_selected)
+        config = load_experiment_config(path_experiment_selected)
 
-        with open(f"{path_experiment_selected}/test.json") as f:
-            results = json.load(f)
-        with open(f"{path_experiment_selected}/config.json") as f:
-            config = json.load(f)
-
-        nodes = results.keys()  # e.g. keys = ['0', '1', '2', ...]
         mapping_sensor_with_node = {}
-        for node in nodes:
+        for node in results.keys():  # e.g. keys = ['0', '1', '2', ...]
             mapping_sensor_with_node[config["nodes_to_filter"][int(node)]] = node  # e.g. nodes_to_filter = [118, 261, 10, ...]
 
-    if path_experiment_selected is not None and (path.exists(f'{path_experiment_selected}/y_true_local_0.npy') and path.exists(f"{path_experiment_selected}/y_pred_fed_0.npy")):
         plot_map(path_experiment_selected, mapping_sensor_with_node)
