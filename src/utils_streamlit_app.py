@@ -50,6 +50,20 @@ def load_numpy(path):
     return np.load(path)
 
 
+@st.cache_data
+def load_experiment_results(experiment_path):
+    with open(f"{experiment_path}/test.json") as f:
+        results = json.load(f)
+    return results
+
+
+@st.cache_data
+def load_experiment_config(experiment_path):
+    with open(f"{experiment_path}/config.json") as f:
+        config = json.load(f)
+    return config
+
+
 @st.cache_resource
 def map_path_experiments_to_params(path_files, params_config_use_for_select):
     """
