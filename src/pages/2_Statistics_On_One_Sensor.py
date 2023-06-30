@@ -49,6 +49,7 @@ with st.sidebar:
     )
 
 st.subheader("Selection of the experiment")
+st.divider()
 
 path_experiment_selected = selection_of_experiment()
 if (path_experiment_selected is not None):
@@ -57,28 +58,24 @@ if (path_experiment_selected is not None):
     with open(f"{path_experiment_selected}/config.json") as f:
         config = json.load(f)
 
-    mapping_sensor_with_node = {}
-    for node in results.keys():  # e.g. keys = ['0', '1', '2', ...]
-        mapping_sensor_with_node[config["nodes_to_filter"][int(node)]] = node  # e.g. nodes_to_filter = [118, 261, 10, ...]
+    def format_selectbox_sensor(value):
+        return config["nodes_to_filter"][int(value)]
 
-    st.divider()
-
-    sensor_selected = st.sidebar.selectbox('Choose the sensor', mapping_sensor_with_node.keys())
-
+    sensor_selected = st.sidebar.selectbox('Choose the sensor', results.keys(), format_func=format_selectbox_sensor)
     results_sensor_federated = []
-    if "Federated" in results[mapping_sensor_with_node[sensor_selected]].keys():
-        results_sensor_federated = pd.DataFrame(results[mapping_sensor_with_node[sensor_selected]]["Federated"], columns=METRICS, index=["Value"])
+    if "Federated" in results[sensor_selected].keys():
+        results_sensor_federated = pd.DataFrame(results[sensor_selected]["Federated"], columns=METRICS, index=["Value"])
         stats_sensor_federated = results_sensor_federated.T
 
     results_sensor_local = []
-    if "local_only" in results[mapping_sensor_with_node[sensor_selected]].keys():
-        results_sensor_local = pd.DataFrame(results[mapping_sensor_with_node[sensor_selected]]["local_only"], columns=METRICS, index=["Value"])
+    if "local_only" in results[sensor_selected].keys():
+        results_sensor_local = pd.DataFrame(results[sensor_selected]["local_only"], columns=METRICS, index=["Value"])
         stats_sensor_local = results_sensor_local.T
 
     color_fed = []
     color_local = []
     for i in range(len(METRICS)):
-        if (i < 3):  # because "Superior Pred %" metric needs to be superior=True
+        if (i < len(METRICS) - 1):  # because "Superior Pred %" metric needs to be superior=True
             col_fed, col_local = get_color_fed_vs_local(stats_sensor_federated.iloc[i]["Value"], stats_sensor_local.iloc[i]["Value"], superior=False)
         else:
             col_fed, col_local = get_color_fed_vs_local(stats_sensor_federated.iloc[i]["Value"], stats_sensor_local.iloc[i]["Value"], superior=True)
@@ -95,4 +92,6 @@ if (path_experiment_selected is not None):
         # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
         st.table(stats_sensor_local.style.set_table_styles(style_dataframe(stats_sensor_local, colors=color_local, column_index=2)))
 
-    PAGES[page_selectioned](path_experiment_selected, mapping_sensor_with_node[sensor_selected])
+    PAGES[page_selectioned](path_experiment_selected, sensor_selected)
+else:
+    st.header(":red[You don't have experiments to see. (check docs/how_to_visualize_results.md)]")
