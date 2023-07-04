@@ -70,8 +70,8 @@ with open(PATH_EXPERIMENTS / 'test.txt', 'w') as f:
             metrics_dict[node] = {}
             datadict[node]['test_data'] = datadict[node]['test_data'] * meanstd_dict[params.nodes_to_filter[node]]['std'] + meanstd_dict[params.nodes_to_filter[node]]['mean']
 
-            numpy.save(PATH_EXPERIMENTS / "test_data_{node}", datadict[node]['test_data'])
-            numpy.save(PATH_EXPERIMENTS / "index_{node}", datadict[node]['test_data'].index)
+            numpy.save(PATH_EXPERIMENTS / f"test_data_{node}", datadict[node]['test_data'])
+            numpy.save(PATH_EXPERIMENTS / f"index_{node}", datadict[node]['test_data'].index)
 
             y_true, y_pred = testmodel(model(params.model_input_size,
                                             params.model_hidden_size,
