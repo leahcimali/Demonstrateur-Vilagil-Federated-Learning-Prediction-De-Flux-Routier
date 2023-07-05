@@ -45,7 +45,7 @@ with open(PATH_EXPERIMENTS / 'test.txt', 'w') as f:
 
         #  Load traffic flow dataframe and graph dataframe from PEMS
         df_PeMS, distance = load_PeMS04_flow_data()
-        df_PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(df_PeMS, params.time_serie_percentage_length,
+        df_PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(df_PeMS, 1,
                                                             distance, params.init_node, params.n_neighbours,
                                                             params.smooth, params.center_and_reduce,
                                                             params.normalize, params.sort_by_mean)
