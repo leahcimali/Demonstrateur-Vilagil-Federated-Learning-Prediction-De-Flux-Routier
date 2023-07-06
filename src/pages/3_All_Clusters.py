@@ -8,6 +8,8 @@ import streamlit as st
 import pandas as pd
 import networkx as nx
 import random
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 
 import plotly.graph_objects as go
@@ -16,7 +18,7 @@ from utils_graph import create_graph
 from utils_streamlit_app import load_experiment_results, load_experiment_config
 
 
-random.seed(5)
+random.seed(42)
 
 #######################################################################
 # Constant(s)
@@ -109,7 +111,7 @@ class Cluster:
 
 
 def render_graph(graph):
-    pos = nx.spring_layout(G, k=0.4, seed=42)
+    pos = nx.spring_layout(G, k=1, iterations=300, seed=42)
     edge_x = []
     edge_y = []
     for edge in G.edges():
@@ -155,9 +157,9 @@ def render_graph(graph):
 
     node_adjacencies = []
     node_text = []
-    for node, adjacencies in enumerate(graph.adjacency()):
+    for adjacencies in graph.adjacency():
         node_adjacencies.append(len(adjacencies[1]))
-        node_text.append(node)
+        node_text.append(int(adjacencies[0]))
 
     node_trace.marker.color = node_adjacencies
     node_trace.text = node_text
@@ -177,30 +179,22 @@ def render_graph(graph):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def create_color_list(n):
-    # n is the number of colors needed
-    # create an empty list to store the colors
-    color_list = []
-    # loop n times
-    for _ in range(n):
-        # generate a random color in rgb format
-        color = "rgb(" + ",".join([str(random.randint(0, 255)) for _ in range(3)]) + ")"
-        # append the color to the list
-        color_list.append(color)
-    # return the list of colors
-    return color_list
+def generate_colors(num_colors):
+    colormap = plt.cm.get_cmap('hsv', num_colors)
+    colors = [colormap(i) for i in range(num_colors)]
+    return [mcolors.to_rgb(color) for color in colors]
 
 
 def render_graph_colored_with_cluster(graph, clusters):
-    colors_cluster = create_color_list(28)
+    colors_cluster = [f"rgb({int(r * 255)}, {int(g * 255)}, {int(b * 255)})" for r, g, b in generate_colors(28)]
     for i in range(len(clusters)):
         color_cluster = colors_cluster[i]
-        for node in clusters[i].sensors:
-            graph.nodes[node]["color"] = color_cluster
-    for node in [222.0, 79.0, 90.0, 2.0, 81.0, 204.0]:
-        graph.nodes[node]["color"] = colors_cluster[i]
+        for sensor in clusters[i].sensors:
+            graph.nodes[sensor]["color"] = color_cluster
+    for sensor in [222.0, 79.0, 90.0, 2.0, 81.0, 204.0]:
+        graph.nodes[int(sensor)]["color"] = colors_cluster[27]
 
-    pos = nx.spring_layout(G, k=0.4, seed=42)
+    pos = nx.spring_layout(G, k=1.0, iterations=300, seed=42)
 
     node_adjacencies = []
     node_text = []
@@ -219,13 +213,13 @@ def render_graph_colored_with_cluster(graph, clusters):
 
     fig = go.Figure()
     for edge in G.edges():
-        if G.nodes[edge[0]]["color"] == G.nodes[edge[1]]["color"]:
-            x0, y0 = pos[edge[0]]
-            x1, y1 = pos[edge[1]]
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        if G.nodes[int(edge[0])]["color"] == G.nodes[int(edge[1])]["color"]:
             fig.add_trace(go.Scatter(
                 x=[x0, x1],
                 y=[y0, y1],
-                legendgroup=G.nodes[edge[0]]["color"],
+                legendgroup=G.nodes[int(edge[0])]["color"],
                 line=dict(width=1.0, color='#888'),
                 mode='lines', showlegend=False)
             )
