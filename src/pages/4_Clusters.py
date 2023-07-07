@@ -2,14 +2,10 @@
 # Libraries
 ###############################################################################
 import glob
-import math
 from pathlib import PurePath
 import streamlit as st
 import pandas as pd
-import networkx as nx
 import plotly.graph_objects as go
-from utils_data import load_PeMS04_flow_data
-from utils_graph import create_graph
 
 
 from utils_streamlit_app import load_experiment_results, load_experiment_config
@@ -40,7 +36,6 @@ class Cluster:
     def get_node_metric_federated(self, node, metric):
         return self.cluster[node]["Federated"][metric]
 
-
     def show_parameters(self):
         # Création du DataFrame
         df_parameters = pd.DataFrame(self.parameters, columns=["time_serie_percentage_length",
@@ -53,7 +48,7 @@ class Cluster:
                                                     "num_epochs_local_federation",
                                                     "epoch_local_retrain_after_federation",
                                                     "num_epochs_local_no_federation",
-                                                    "model"])
+                                                    "model"]).iloc[0]
         # Renommage des colonnes
         column_names = {
             "time_serie_percentage_length": "Length of the time serie used",
@@ -76,15 +71,12 @@ class Cluster:
         st.write("WS (**Windows size**), how many steps use to make a prediction")
         st.write("PH (**Prediction horizon**), how far the prediction goes (how many steps)")
         st.write("CR (**Communication round**), how many time the central server and the clients communicate")
-        df_parameters = pd.DataFrame(df_parameters.iloc[0])
         df_parameters.index.name = "Parameters"
         df_parameters = df_parameters.rename(column_names)
         st.dataframe(df_parameters, use_container_width=True)
 
 
 def render_bar_plot_fed_vs_local(cluster, metric, descending=False):
-
-
     value_metric_local = []
     value_metric_federated = []
     for node in cluster.nodes:
@@ -129,7 +121,7 @@ def render_bar_plot_fed_vs_local(cluster, metric, descending=False):
     fig.update_layout(title=f"Comparison between federated version and local version on the {metric} metric")
 
     # Ajouter des légendes aux axes x et y
-    fig.update_xaxes(title="Nom du capteur")
+    fig.update_xaxes(title="Sensors name")
     fig.update_yaxes(title=f"{metric} value", range=[0, max_value], dtick=5)
 
     fig.update_layout(
@@ -138,21 +130,19 @@ def render_bar_plot_fed_vs_local(cluster, metric, descending=False):
         margin=dict(l=0, r=0, t=30, b=0),
         xaxis_tickangle=45,
     )
-
-    # Utiliser le mode de survol "x unified" pour le graphique
     fig.update_layout(hovermode="x unified")
+
     nb_sensors = sum(
         federated_value <= local_value
         for federated_value, local_value in zip(
             value_metric_federated, value_metric_local
         )
     )
-
-    # Ajouter une annotation au graphique avec le nombre de capteurs calculé
     fig.add_annotation(
         x=0,
         y=1,
-        text=f" {nb_sensors} sensor(s) is/are better with the federation on {len(value_metric_federated)} ({round(nb_sensors / len(value_metric_federated)*100, 2)}%)",
+        text=f"{round(nb_sensors / len(value_metric_federated)*100, 2)}% ({nb_sensors}/{len(value_metric_federated)}) " +
+        "sensors have better results with the federated approach",
         font=dict(size=18, color="black"),
         showarrow=False,
         xref="paper",

@@ -36,7 +36,7 @@ class Cluster:
         self.parameters = config_cluster
         self.sensors = [config_cluster["nodes_to_filter"][int(index)] for index in cluster.keys()]
         self.name = str(config_cluster["nodes_to_filter"])
-        self.size = len(cluster)
+        self.size = len(self.cluster)
         self.general_stats_local_only = pd.DataFrame([
             cluster[sensor]["local_only"]
             for sensor in cluster.keys()
@@ -68,6 +68,13 @@ class Cluster:
             _type_: _description_
         """
         return self.general_stats_federated.loc[metric]["mean"].item()
+
+    def get_nb_sensor_better_in_federation(self, metric):
+        sensor_improve = 0
+        for sensor in self.cluster.keys():
+            if self.cluster[sensor]["Federated"][metric] >= self.cluster[sensor]["local_only"][metric]:
+                sensor_improve += 1
+        return sensor_improve
 
     def show_parameters(self):
         # Création du DataFrame
@@ -111,6 +118,7 @@ class Cluster:
 
 
 def render_graph(graph):
+    st.subheader("Network graph with sensors colored based on their neighborhood")
     pos = nx.spring_layout(G, k=1, iterations=300, seed=42)
     edge_x = []
     edge_y = []
@@ -166,7 +174,7 @@ def render_graph(graph):
 
     fig = go.Figure(data=[edge_trace, node_trace],
                 layout=go.Layout(
-                    title='Network graph with sensors colored based on their neighbors',
+                    title='',
                     titlefont_size=16,
                     showlegend=False,
                     hovermode='closest',
@@ -186,6 +194,7 @@ def generate_colors(num_colors):
 
 
 def render_graph_colored_with_cluster(graph, clusters):
+    st.subheader("Network graph with sensors colored based on their cluster membership")
     colors_cluster = [f"rgb({int(r * 255)}, {int(g * 255)}, {int(b * 255)})" for r, g, b in generate_colors(28)]
     for i in range(len(clusters)):
         color_cluster = colors_cluster[i]
@@ -249,7 +258,7 @@ def render_graph_colored_with_cluster(graph, clusters):
             ))
 
     fig.update_layout(
-        title='Network graph with sensors colored based on their cluster membership',
+        title='',
         titlefont_size=16,
         showlegend=True,
         hovermode='closest',
@@ -262,107 +271,62 @@ def render_graph_colored_with_cluster(graph, clusters):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_bar_plot(clusters, metric, title="Bar plot", descending=False):
-    clusters_name = [cluster.name for cluster in clusters]
-    clusters_mean_metric = [cluster.get_general_metric_mean_federated(metric) for cluster in clusters]
-    num_clusters = len(clusters_name)
+def get_couleurs(list_numbers):
     couleurs = {}
-    for i in range(num_clusters):
-        proportion = i / num_clusters
-        angle = proportion * 2 * math.pi
-        r = math.floor(math.sin(angle) * 127) + 128
-        g = math.floor(math.sin(angle + 2 * math.pi / 3) * 127) + 128
-        b = math.floor(math.sin(angle + 4 * math.pi / 3) * 127) + 128
-        couleur = (f"rgb({r}, {g}, {b})")
-        cluster_name = clusters_name[i]
-        couleurs[cluster_name] = couleur
+    phi = (1 + math.sqrt(5)) / 2  # Nombre d'or
 
-    sorted_metric_mean = sorted(clusters_mean_metric, reverse=descending)
-    sorted_nodes_to_filter = [name for _, name in sorted(zip(clusters_mean_metric, clusters_name))]
+    for nombre in list_numbers:
+        if nombre not in couleurs:
+            couleur_index = int(math.floor(nombre * phi))
+            couleur_r = (couleur_index * 137) % 256
+            couleur_g = (couleur_index * 73) % 256
+            couleur_b = (couleur_index * 43) % 256
+            couleurs[nombre] = f"rgb({couleur_r}, {couleur_g}, {couleur_b})"
 
-    max_value = max(sorted_metric_mean)
-
-    fig = go.Figure()
-    for (x, y) in zip(sorted_nodes_to_filter, sorted_metric_mean):
-        y = round(y, 2)
-        fig.add_trace(go.Bar(
-            x=[x],
-            y=[y],
-            marker_color=f'{couleurs[x]}',
-            name=f'{x} = {y}',
-            orientation="v",
-        ))
-
-    # Configuration de l'axe x
-    fig.update_xaxes(title='sensors',
-                    dtick=1)
-
-    fig.update_yaxes(
-        title=f'{metric} Mean',
-        range=[0, max_value],
-        dtick=5
-    )
-
-    fig.update_layout(
-        title=f'{title}',
-        showlegend=True,
-        height=800,
-        margin=dict(l=0, r=0, t=30, b=0),
-        xaxis_tickangle=45,
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
+    return couleurs
 
 
-def render_proportion_sensor_better_in_federated(clusters, metric, title="Bar plot", descending=False):
-    clusters_name = [cluster.name for cluster in clusters]
-    num_clusters = len(clusters_name)
-    couleurs = {}
-    for i in range(num_clusters):
-        proportion = i / num_clusters
-        angle = proportion * 2 * math.pi
-        r = math.floor(math.sin(angle) * 127) + 128
-        g = math.floor(math.sin(angle + 2 * math.pi / 3) * 127) + 128
-        b = math.floor(math.sin(angle + 4 * math.pi / 3) * 127) + 128
-        couleur = (f"rgb({r}, {g}, {b})")
-        cluster_name = clusters_name[i]
-        couleurs[cluster_name] = couleur
-
-    nb_sensor_improve = []
-    cluster_size = {}
+def render_tendency_based_on_cluster_size(clusters, metric, title="", descending=False):
+    st.subheader("The relationship between cluster size and the number of sensors improved by the federated approach")
+    clusters_group_by_size = {}
+    size_clusters_group_by_size = {}
     for cluster in clusters:
-        sensor_improve = 0
-        for sensor in cluster.cluster.keys():
-            if cluster.cluster[sensor]["Federated"][metric] >= cluster.cluster[sensor]["local_only"][metric]:
-                sensor_improve += 1
-        nb_sensor_improve.append((sensor_improve / cluster.size) * 100)
-        cluster_size[cluster.name] = cluster.size
+        if cluster.size in clusters_group_by_size.keys():
+            clusters_group_by_size[cluster.size] += cluster.get_nb_sensor_better_in_federation(metric)
+            size_clusters_group_by_size[cluster.size] += 1
+        else:
+            clusters_group_by_size[cluster.size] = cluster.get_nb_sensor_better_in_federation(metric)
+            size_clusters_group_by_size[cluster.size] = 1
+    clusters_mean_metric = []
+    for cluster_size in clusters_group_by_size.keys():
+        clusters_group_by_size[cluster_size] = (clusters_group_by_size[cluster_size] / size_clusters_group_by_size[cluster_size])
+        clusters_mean_metric.append(clusters_group_by_size[cluster_size])
 
-    sorted_nb_sensor_improve = sorted(nb_sensor_improve, reverse=descending)
-    sorted_cluster_name = [name for _, name in sorted(zip(nb_sensor_improve, clusters_name))]
+    size_clusters_group_by_size = clusters_group_by_size.keys()
+    sorted_size_clusters_group_by_size = sorted(size_clusters_group_by_size)
+    sorted_clusters_mean_metric = [value for _, value in sorted(zip(size_clusters_group_by_size, clusters_mean_metric))]
 
-    max_value = max(nb_sensor_improve)
+    max_value = max(clusters_mean_metric)
 
     fig = go.Figure()
-    for (x, y) in zip(sorted_cluster_name, sorted_nb_sensor_improve):
-        y = round(y, 2)
-        bar_trace = go.Bar(
-            x=[x],
-            y=[y],
-            marker_color=f'{couleurs[x]}',
-            name=f'{x} = {y}',
-            text=f"{cluster_size[x]}",
-            orientation="v",
-        )
-        fig.add_trace(bar_trace)
+    line_plot = go.Scatter(
+        x=sorted_size_clusters_group_by_size,
+        y=sorted_clusters_mean_metric,
+        marker=dict(
+            color="red"
+        ),
+        name='Tendency',
+        mode='lines+markers'
+    )
+    fig.add_trace(line_plot)
 
     # Configuration de l'axe x
-    fig.update_xaxes(title='sensors',
+    fig.update_xaxes(title='Size of a cluster',
                     dtick=1)
 
     fig.update_yaxes(
-        title=f'{metric} Mean',
-        range=[0, max_value],
+        title='Nb sensors with better results',
+        range=[-2, max_value + 2],
         dtick=5
     )
 
@@ -370,53 +334,143 @@ def render_proportion_sensor_better_in_federated(clusters, metric, title="Bar pl
         title=f'{title}',
         showlegend=True,
         height=800,
-        margin=dict(l=0, r=0, t=30, b=0),
-        xaxis_tickangle=45,
+        margin=dict(l=0, r=0, t=0, b=0),
+        xaxis_tickangle=0,
     )
 
     # Affichage du graphique
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_group_by_size(clusters, metric, title="Bar plot", descending=False):
+def render_proportion_sensor_better_in_federated(clusters, metric, title="", descending=False):
+    st.subheader("Compare clusters based on their size and the  proportion of sensors that have better results with the federated version compared to the local version.")
+    st.write("""A circle represents a cluster with the size in x""")
+    st.write("""The line reprensents the tendency""")
+    clusters_size = [cluster.size for cluster in clusters]
+
+    couleurs = get_couleurs(clusters_size)
     clusters_group_by_size = {}
     size_clusters_group_by_size = {}
     for cluster in clusters:
         if cluster.size in clusters_group_by_size.keys():
-            clusters_group_by_size[cluster.size] += cluster.get_general_metric_mean_federated(metric)
+            clusters_group_by_size[cluster.size] += cluster.get_nb_sensor_better_in_federation(metric) / cluster.size
             size_clusters_group_by_size[cluster.size] += 1
         else:
-            clusters_group_by_size[cluster.size] = cluster.get_general_metric_mean_federated(metric)
+            clusters_group_by_size[cluster.size] = cluster.get_nb_sensor_better_in_federation(metric) / cluster.size
             size_clusters_group_by_size[cluster.size] = 1
     clusters_mean_metric = []
     for cluster_size in clusters_group_by_size.keys():
-        clusters_group_by_size[cluster_size] = clusters_group_by_size[cluster_size] / size_clusters_group_by_size[cluster_size]
+        clusters_group_by_size[cluster_size] = (clusters_group_by_size[cluster_size] / size_clusters_group_by_size[cluster_size]) * 100
         clusters_mean_metric.append(clusters_group_by_size[cluster_size])
-    sizes = size_clusters_group_by_size.keys()
-    sorted_sizes = sorted(sizes, reverse=descending)
-    sorted_metric_mean = [metric_value for _, metric_value in sorted(zip(sizes, clusters_mean_metric))]
 
+    nb_sensor_improve = [
+        (cluster.get_nb_sensor_better_in_federation(metric) / cluster.size) * 100
+        for cluster in clusters
+    ]
+    sorted_cluster_size = sorted(clusters_size, reverse=descending)
+    sorted_nb_sensor_improve = [value for _, value in sorted(zip(clusters_size, nb_sensor_improve))]
+    sorted_clusters_mean_metric = [value for _, value in sorted(zip(clusters_size, clusters_mean_metric))]
+
+    size_clusters_group_by_size = clusters_group_by_size.keys()
+    sorted_size_clusters_group_by_size = sorted(size_clusters_group_by_size)
+    sorted_clusters_mean_metric = [value for _, value in sorted(zip(size_clusters_group_by_size, clusters_mean_metric))]
+
+    max_value = max(nb_sensor_improve)
+
+    fig = go.Figure()
+    for (x, y) in zip(sorted_cluster_size, sorted_nb_sensor_improve):
+        y = round(y, 2)
+        bar_trace = go.Scatter(
+            x=[x],
+            y=[y],
+            marker=dict(
+                color=couleurs[x],
+                size=20
+            ),
+            text=f'{x} = {y}%',
+            name=f'Size: {x}',
+            legendgroup=x,
+        )
+        fig.add_trace(bar_trace)
+    line_plot = go.Scatter(
+        x=sorted_size_clusters_group_by_size,
+        y=sorted_clusters_mean_metric,
+        marker=dict(
+            color="red"
+        ),
+        name='Tendency',
+        mode='lines+markers'
+    )
+    fig.add_trace(line_plot)
+
+    # Configuration de l'axe x
+    fig.update_xaxes(title='Size of a cluster',
+                    dtick=1)
+
+    fig.update_yaxes(
+        title='% of sensors with better results',
+        range=[-2, max_value + 2],
+        dtick=5
+    )
+
+    fig.update_layout(
+        title=f'{title}',
+        showlegend=True,
+        height=800,
+        margin=dict(l=0, r=0, t=0, b=0),
+        xaxis_tickangle=0,
+    )
+
+    # Affichage du graphique
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def render_histogram(clusters, metric, title="", descending=False):
+    st.subheader("Compare clusters based on their size and the proportion of sensors that have better results with the federated version compared to the local version.")
+    st.write("""When 2 or more cluster have the same size we take the average""")
+    clusters_group_by_size = {}
+    size_clusters_group_by_size = {}
+    for cluster in clusters:
+        if cluster.size in clusters_group_by_size.keys():
+            clusters_group_by_size[cluster.size] += cluster.get_nb_sensor_better_in_federation(metric) / cluster.size
+            size_clusters_group_by_size[cluster.size] += 1
+        else:
+            clusters_group_by_size[cluster.size] = cluster.get_nb_sensor_better_in_federation(metric) / cluster.size
+            size_clusters_group_by_size[cluster.size] = 1
+    clusters_mean_metric = []
+    for cluster_size in clusters_group_by_size.keys():
+        clusters_group_by_size[cluster_size] = (clusters_group_by_size[cluster_size] / size_clusters_group_by_size[cluster_size]) * 100
+        clusters_mean_metric.append(clusters_group_by_size[cluster_size])
+    sizes = clusters_group_by_size.keys()
+
+    # sorted_sizes = sorted(sizes, reverse=descending)
+    # sorted_metric_mean = [metric_value for _, metric_value in sorted(zip(sizes, clusters_mean_metric))]
+
+    sorted_metric_mean = sorted(clusters_mean_metric, reverse=descending)
+    sorted_sizes = [size for _, size in sorted(zip(clusters_mean_metric, sizes))]
+    couleurs = get_couleurs(sorted_sizes)
     max_value = max(sorted_metric_mean)
+
     fig = go.Figure()
     for (x, y) in zip(sorted_sizes, sorted_metric_mean):
         y = round(y, 2)
         bar_trace = go.Bar(
-            x=[x],
+            x=[f"({str(x)})"],
             y=[y],
-            marker_color=f'rgb({((y * 7))}, 100, 200)',
-            name=f'{x, "RMSE:",y}',
+            marker_color=f'{couleurs[x]}',
+            name=f'Size of cluster: {x} Percent: {y}%',
             text=f"{y}",
             orientation="v",
         )
         fig.add_trace(bar_trace)
 
     # Configuration de l'axe x
-    fig.update_xaxes(title='Size of the cluster',
+    fig.update_xaxes(title='Size of the cluster (i)',
                     dtick=1)
 
     fig.update_yaxes(
-        title=f'{metric} Mean',
-        range=[0, max_value],
+        title='Percent of sensors better in federated',
+        range=[0, 100],
         dtick=5
     )
 
@@ -427,7 +481,7 @@ def render_group_by_size(clusters, metric, title="Bar plot", descending=False):
         margin=dict(l=0, r=0, t=30, b=0),
         xaxis_tickangle=0,
         legend=dict(
-            title="Size of the cluster"
+            title="Size of the cluster and percent of sensors better in federated version"
         )
     )
 
@@ -459,6 +513,6 @@ df_PeMS, distance = load_PeMS04_flow_data()
 G = create_graph(distance)
 render_graph(G)
 render_graph_colored_with_cluster(G, clusters)
-render_bar_plot(clusters, "RMSE")
+render_histogram(clusters, "RMSE")
+render_tendency_based_on_cluster_size(clusters, "RMSE")
 render_proportion_sensor_better_in_federated(clusters, "RMSE")
-render_group_by_size(clusters, "RMSE")
