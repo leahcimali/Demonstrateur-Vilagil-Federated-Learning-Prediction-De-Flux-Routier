@@ -70,15 +70,21 @@ class Cluster:
         return self.general_stats_federated.loc[metric]["mean"].item()
 
     def get_nb_sensor_better_in_federation(self, metric):
-        sensor_improve = 0
-        for sensor in self.cluster.keys():
-            if self.cluster[sensor]["Federated"][metric] >= self.cluster[sensor]["local_only"][metric]:
-                sensor_improve += 1
-        return sensor_improve
+        return (
+            sum(
+                self.cluster[sensor]["Federated"][metric] <= self.cluster[sensor]["local_only"][metric]
+                for sensor in self.cluster.keys()
+            )
+            if metric != "Superior Pred %"
+            else sum(
+                self.cluster[sensor]["Federated"][metric] >= self.cluster[sensor]["local_only"][metric]
+                for sensor in self.cluster.keys()
+            )
+        )
 
     def show_parameters(self):
-        # Création du DataFrame
-        df_parameters = pd.DataFrame(self.parameters, columns=["time_serie_percentage_length",
+        df_parameters = pd.DataFrame(self.parameters,
+                                    columns=["time_serie_percentage_length",
                                                     "batch_size",
                                                     "number_of_nodes",
                                                     "nodes_to_filter",
@@ -89,7 +95,6 @@ class Cluster:
                                                     "epoch_local_retrain_after_federation",
                                                     "num_epochs_local_no_federation",
                                                     "model"])
-        # Renommage des colonnes
         column_names = {
             "time_serie_percentage_length": "Length of the time serie used",
             "batch_size": "Batch Size",
@@ -104,8 +109,8 @@ class Cluster:
             "learning_rate": "Learning Rate",
             "model": "Model"
         }
+        df_parameters = df_parameters.rename(column_names)
 
-        # Affichage du tableau récapitulatif
         st.write("**Parameters of clusters**")
         st.write("")
         st.write("WS (**Windows size**), how many steps use to make a prediction")
@@ -113,8 +118,28 @@ class Cluster:
         st.write("CR (**Communication round**), how many time the central server and the clients communicate")
         df_parameters = pd.DataFrame(df_parameters.iloc[0])
         df_parameters.index.name = "Parameters"
-        df_parameters = df_parameters.rename(column_names)
         st.dataframe(df_parameters, use_container_width=True)
+
+
+def generate_colors(num_colors):
+    colormap = plt.cm.get_cmap('hsv', num_colors)
+    colors = [colormap(i) for i in range(num_colors)]
+    return [mcolors.to_rgb(color) for color in colors]
+
+
+def get_couleurs(list_numbers):
+    couleurs = {}
+    phi = (1 + math.sqrt(5)) / 2  # Nombre d'or
+
+    for nombre in list_numbers:
+        if nombre not in couleurs:
+            couleur_index = int(math.floor(nombre * phi))
+            couleur_r = (couleur_index * 137) % 256
+            couleur_g = (couleur_index * 73) % 256
+            couleur_b = (couleur_index * 43) % 256
+            couleurs[nombre] = f"rgb({couleur_r}, {couleur_g}, {couleur_b})"
+
+    return couleurs
 
 
 def render_graph(graph):
@@ -125,13 +150,8 @@ def render_graph(graph):
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
-        edge_x.append(x0)
-        edge_x.append(x1)
-        edge_x.append(None)
-        edge_y.append(y0)
-        edge_y.append(y1)
-        edge_y.append(None)
-
+        edge_x.extend((x0, x1, None))
+        edge_y.extend((y0, y1, None))
     edge_trace = go.Scatter(
         x=edge_x, y=edge_y,
         line=dict(width=0.5, color='#888'),
@@ -187,12 +207,6 @@ def render_graph(graph):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def generate_colors(num_colors):
-    colormap = plt.cm.get_cmap('hsv', num_colors)
-    colors = [colormap(i) for i in range(num_colors)]
-    return [mcolors.to_rgb(color) for color in colors]
-
-
 def render_graph_colored_with_cluster(graph, clusters):
     st.subheader("Network graph with sensors colored based on their cluster membership")
     colors_cluster = [f"rgb({int(r * 255)}, {int(g * 255)}, {int(b * 255)})" for r, g, b in generate_colors(28)]
@@ -200,16 +214,27 @@ def render_graph_colored_with_cluster(graph, clusters):
         color_cluster = colors_cluster[i]
         for sensor in clusters[i].sensors:
             graph.nodes[sensor]["color"] = color_cluster
-    for sensor in [222.0, 79.0, 90.0, 2.0, 81.0, 204.0]:
-        graph.nodes[int(sensor)]["color"] = colors_cluster[27]
+    for sensor in [222, 79, 90, 2, 81, 204]:
+        graph.nodes[sensor]["color"] = colors_cluster[27]
 
     pos = nx.spring_layout(G, k=1.0, iterations=300, seed=42)
 
-    node_adjacencies = []
-    node_text = []
-    for adjacencies in graph.adjacency():
-        node_adjacencies.append(len(adjacencies[1]))
-        node_text.append(int(adjacencies[0]))
+    fig = go.Figure()
+    for edge in G.edges():
+        if G.nodes[int(edge[0])]["color"] == G.nodes[int(edge[1])]["color"]:
+            group = G.nodes[int(edge[0])]["color"]
+        else:
+            group = "other"
+
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        fig.add_trace(go.Scatter(
+            x=[x0, x1],
+            y=[y0, y1],
+            legendgroup=group,
+            line=dict(width=1.0, color='#888'),
+            mode='lines', showlegend=False)
+        )
 
     node_x = []
     node_y = []
@@ -219,28 +244,8 @@ def render_graph_colored_with_cluster(graph, clusters):
         color.append(graph.nodes[int(node)]["color"])
         node_x.append(x)
         node_y.append(y)
-
-    fig = go.Figure()
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        if G.nodes[int(edge[0])]["color"] == G.nodes[int(edge[1])]["color"]:
-            fig.add_trace(go.Scatter(
-                x=[x0, x1],
-                y=[y0, y1],
-                legendgroup=G.nodes[int(edge[0])]["color"],
-                line=dict(width=1.0, color='#888'),
-                mode='lines', showlegend=False)
-            )
-        else:
-            fig.add_trace(go.Scatter(
-                x=[x0, x1],
-                y=[y0, y1],
-                legendgroup="other",
-                line=dict(width=1.0, color='#888'),
-                mode='lines', showlegend=False)
-            )
-    for i in range(len(node_x)):
+    node_text = [int(adjacencies[0]) for adjacencies in graph.adjacency()]
+    for i in range(len(G.nodes())):
         fig.add_trace(
             go.Scatter(
                 x=[node_x[i]],
@@ -271,21 +276,6 @@ def render_graph_colored_with_cluster(graph, clusters):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def get_couleurs(list_numbers):
-    couleurs = {}
-    phi = (1 + math.sqrt(5)) / 2  # Nombre d'or
-
-    for nombre in list_numbers:
-        if nombre not in couleurs:
-            couleur_index = int(math.floor(nombre * phi))
-            couleur_r = (couleur_index * 137) % 256
-            couleur_g = (couleur_index * 73) % 256
-            couleur_b = (couleur_index * 43) % 256
-            couleurs[nombre] = f"rgb({couleur_r}, {couleur_g}, {couleur_b})"
-
-    return couleurs
-
-
 def render_tendency_based_on_cluster_size(clusters, metric, title="", descending=False):
     st.subheader("The relationship between cluster size and the number of sensors improved by the federated approach")
     clusters_group_by_size = {}
@@ -297,21 +287,21 @@ def render_tendency_based_on_cluster_size(clusters, metric, title="", descending
         else:
             clusters_group_by_size[cluster.size] = cluster.get_nb_sensor_better_in_federation(metric)
             size_clusters_group_by_size[cluster.size] = 1
-    clusters_mean_metric = []
+    clusters_mean_metric_values = []
     for cluster_size in clusters_group_by_size.keys():
         clusters_group_by_size[cluster_size] = (clusters_group_by_size[cluster_size] / size_clusters_group_by_size[cluster_size])
-        clusters_mean_metric.append(clusters_group_by_size[cluster_size])
+        clusters_mean_metric_values.append(clusters_group_by_size[cluster_size])
 
-    size_clusters_group_by_size = clusters_group_by_size.keys()
-    sorted_size_clusters_group_by_size = sorted(size_clusters_group_by_size)
-    sorted_clusters_mean_metric = [value for _, value in sorted(zip(size_clusters_group_by_size, clusters_mean_metric))]
+    sizes_clusters_group_by_size = clusters_group_by_size.keys()
+    sorted_sizes_clusters_group_by_size = sorted(sizes_clusters_group_by_size, reverse=descending)
+    sorted_clusters_mean_metric_values = [value for _, value in sorted(zip(size_clusters_group_by_size, clusters_mean_metric_values), reverse=descending)]
 
-    max_value = max(clusters_mean_metric)
+    max_value = max(clusters_mean_metric_values)
 
     fig = go.Figure()
     line_plot = go.Scatter(
-        x=sorted_size_clusters_group_by_size,
-        y=sorted_clusters_mean_metric,
+        x=sorted_sizes_clusters_group_by_size,
+        y=sorted_clusters_mean_metric_values,
         marker=dict(
             color="red"
         ),
@@ -373,7 +363,6 @@ def render_proportion_sensor_better_in_federated(clusters, metric, title="", des
 
     size_clusters_group_by_size = clusters_group_by_size.keys()
     sorted_size_clusters_group_by_size = sorted(size_clusters_group_by_size)
-    sorted_clusters_mean_metric = [value for _, value in sorted(zip(size_clusters_group_by_size, clusters_mean_metric))]
 
     max_value = max(nb_sensor_improve)
 
@@ -396,7 +385,7 @@ def render_proportion_sensor_better_in_federated(clusters, metric, title="", des
         x=sorted_size_clusters_group_by_size,
         y=sorted_clusters_mean_metric,
         marker=dict(
-            color="red"
+            color="blue"
         ),
         name='Tendency',
         mode='lines+markers'
@@ -443,13 +432,9 @@ def render_histogram(clusters, metric, title="", descending=False):
         clusters_mean_metric.append(clusters_group_by_size[cluster_size])
     sizes = clusters_group_by_size.keys()
 
-    # sorted_sizes = sorted(sizes, reverse=descending)
-    # sorted_metric_mean = [metric_value for _, metric_value in sorted(zip(sizes, clusters_mean_metric))]
-
     sorted_metric_mean = sorted(clusters_mean_metric, reverse=descending)
     sorted_sizes = [size for _, size in sorted(zip(clusters_mean_metric, sizes))]
     couleurs = get_couleurs(sorted_sizes)
-    max_value = max(sorted_metric_mean)
 
     fig = go.Figure()
     for (x, y) in zip(sorted_sizes, sorted_metric_mean):
