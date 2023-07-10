@@ -1,21 +1,17 @@
 ###############################################################################
 # Libraries
 ###############################################################################
-import colorsys
-import glob
 import math
 from pathlib import PurePath
 import streamlit as st
-import pandas as pd
 import networkx as nx
 import random
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 
 
 import plotly.graph_objects as go
 from utils_data import load_PeMS04_flow_data
 from utils_graph import create_graph
+from ClusterData import ClusterData
 from utils_streamlit_app import load_experiment_results, load_experiment_config
 
 
@@ -30,67 +26,6 @@ METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
 #######################################################################
 # Function(s)
 #######################################################################
-class Cluster:
-    def __init__(self, cluster, config_cluster):
-        super(Cluster, self).__init__()
-        self.cluster = cluster
-        self.parameters = config_cluster
-        self.sensors = [config_cluster["nodes_to_filter"][int(index)] for index in cluster.keys()]
-        self.name = str(config_cluster["nodes_to_filter"])
-        self.size = len(self.cluster)
-
-    def get_nb_sensor_better_in_federation(self, metric):
-        return (
-            sum(
-                self.cluster[sensor]["Federated"][metric] <= self.cluster[sensor]["local_only"][metric]
-                for sensor in self.cluster.keys()
-            )
-            if metric != "Superior Pred %"
-            else sum(
-                self.cluster[sensor]["Federated"][metric] >= self.cluster[sensor]["local_only"][metric]
-                for sensor in self.cluster.keys()
-            )
-        )
-
-    def show_parameters(self):
-        df_parameters = pd.DataFrame(self.parameters,
-                                    columns=["time_serie_percentage_length",
-                                                    "batch_size",
-                                                    "number_of_nodes",
-                                                    "nodes_to_filter",
-                                                    "window_size",
-                                                    "prediction_horizon",
-                                                    "communication_rounds",
-                                                    "num_epochs_local_federation",
-                                                    "epoch_local_retrain_after_federation",
-                                                    "num_epochs_local_no_federation",
-                                                    "model"])
-        column_names = {
-            "time_serie_percentage_length": "Length of the time serie used",
-            "batch_size": "Batch Size",
-            "number_of_nodes": "Number of Nodes",
-            "nodes_to_filter": "Sensor use",
-            "window_size": "WS",
-            "prediction_horizon": "PH",
-            "communication_rounds": "CR",
-            "num_epochs_local_no_federation": "Epochs alone",
-            "num_epochs_local_federation": "Epochs Federation",
-            "epoch_local_retrain_after_federation": "Epoch Local Retrain",
-            "learning_rate": "Learning Rate",
-            "model": "Model"
-        }
-        df_parameters = df_parameters.rename(column_names)
-
-        st.write("**Parameters of clusters**")
-        st.write("")
-        st.write("WS (**Windows size**), how many steps use to make a prediction")
-        st.write("PH (**Prediction horizon**), how far the prediction goes (how many steps)")
-        st.write("CR (**Communication round**), how many time the central server and the clients communicate")
-        df_parameters = pd.DataFrame(df_parameters.iloc[0])
-        df_parameters.index.name = "Parameters"
-        st.dataframe(df_parameters, use_container_width=True)
-
-
 def generate_colors(num_colors):
     colors = []
     phi = (1 + math.sqrt(5)) / 2  # Nombre d'or
@@ -190,7 +125,7 @@ def render_graph_colored_with_cluster(graph, clusters):
         color_cluster = colors_cluster[i]
         for sensor in clusters[i].sensors:
             graph.nodes[sensor]["color"] = color_cluster
-    for sensor in [222, 79, 90, 2, 81, 204]:
+    for sensor in [222, 79, 90, 2, 81, 204]:  # replace this when the experiment on this cluster finished
         graph.nodes[sensor]["color"] = colors_cluster[27]
 
     pos = nx.spring_layout(graph, k=1.0, iterations=300, seed=42)
@@ -254,7 +189,7 @@ def render_graph_colored_with_cluster(graph, clusters):
 
 
 def render_tendency_cluster_size_number_improve(clusters, metric, title="", descending=False):
-    st.subheader("The relationship between cluster size and the number of sensors improved by the federated approach")
+    st.subheader("Compare clusters based on their size and the number of sensors better with the federated version compared to the local version")
     clusters_group_by_size = {}
     size_clusters_group_by_size = {}
     for cluster in clusters:
@@ -329,7 +264,7 @@ def render_tendency_cluster_size_number_improve(clusters, metric, title="", desc
 
 
 def render_proportion_sensor_better_in_federated(clusters, metric, title="", descending=False):
-    st.subheader("Compare clusters based on their size and the  proportion of sensors that have better results with the federated version compared to the local version.")
+    st.subheader("Compare clusters based on their size and the  proportion of sensors that have better results with the federated version compared to the local version")
     st.write("""A circle represents a cluster with the size in x""")
     st.write("""The line represents the tendency""")
     clusters_size = [cluster.size for cluster in clusters]
@@ -411,7 +346,7 @@ def render_proportion_sensor_better_in_federated(clusters, metric, title="", des
 
 
 def render_histogram(clusters, metric, title="", descending=False):
-    st.subheader("Compare clusters based on their size and the proportion of sensors that have better results with the federated version compared to the local version.")
+    st.subheader("Compare clusters based on their size and the proportion of sensors that have better results with the federated version compared to the local version")
     st.write("""When 2 or more cluster have the same size we take the average""")
     clusters_group_by_size = {}
     size_clusters_group_by_size = {}
@@ -490,24 +425,20 @@ st.write("""
         """)
 st.divider()
 
-# Chargement des configurations des expérimentations
-experiments_folder = "community_experiment/"  # Chemin où toutes les expérimentations sont enregistrées
-experiments_path = glob.glob(f"./{experiments_folder}**/config.json", recursive=True)
 
-clusters = []
-for path_exp in experiments_path:
-    path_exp_parent = PurePath(path_exp).parent
-    cluster = Cluster(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
-    clusters.append(cluster)
+def all_clusters(experiments_path):
+    clusters = []
+    for path_exp in experiments_path:
+        path_exp_parent = PurePath(path_exp).parent
+        cluster = ClusterData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
+        clusters.append(cluster)
 
-clusters[0].show_parameters()
+    _, distance = load_PeMS04_flow_data()
+    G = create_graph(distance)
 
-_, distance = load_PeMS04_flow_data()
-G = create_graph(distance)
-
-with st.spinner('Plotting...'):
-    render_graph_neighborhood(G)
-    render_graph_colored_with_cluster(G, clusters)
-    render_histogram(clusters, "RMSE")
-    render_tendency_cluster_size_number_improve(clusters, "RMSE")
-    render_proportion_sensor_better_in_federated(clusters, "RMSE")
+    with st.spinner('Plotting...'):
+        render_graph_neighborhood(G)
+        render_graph_colored_with_cluster(G, clusters)
+        render_histogram(clusters, "RMSE")
+        render_tendency_cluster_size_number_improve(clusters, "RMSE")
+        render_proportion_sensor_better_in_federated(clusters, "RMSE")

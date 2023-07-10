@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import numpy as np
+import pandas as pd
 import folium
 import glob
 from pathlib import PurePath
@@ -15,6 +16,8 @@ OPTION_ALIASES = {
     "prediction_horizon": "Choose how far you want to see in the future",
     "model": "Choose the model"
 }
+
+METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
 
 
 @st.cache_resource
@@ -118,7 +121,8 @@ def format_radio(path_file_experiment):
     params = Params(f'{path_file_experiment}')
     return f"{params.model} | Sensor(s): ({params.number_of_nodes}) {params.nodes_to_filter} \
     | prediction {format_windows_prediction_size(params.prediction_horizon)} \
-    | the length of the time series used {params.time_serie_percentage_length * 100}%"
+    | the length of the time series used {params.time_serie_percentage_length * 100}% \
+    | batch size use {params.batch_size}"
 
 
 def selection_of_experiment():
@@ -170,6 +174,25 @@ def selection_of_experiment():
             select_exp = st.radio("Choose", list(previous_path_file), format_func=format_radio)
 
             return PurePath(select_exp).parent
+        return None
+
+
+def selection_of_experiment_cluster():
+    """
+    Create the visual to choose a cluster experiment
+
+    Parameters:
+    -----------
+
+    Returns:
+        return the path to the experiment that the user choose
+    """
+
+    experiments_folder = "community_experiments"
+    if experiments_path := glob.glob(f"./{experiments_folder}/*", recursive=True):
+        select_exp = st.selectbox("Choose the experiment cluster", list(experiments_path))
+        return PurePath(select_exp)
+    else:
         return None
 
 
@@ -247,3 +270,31 @@ def style_dataframe(df, colors=None, column_index=None):
         )
     )
     return styles
+
+
+def results_to_dataframe(results):
+    df = pd.DataFrame(results, columns=METRICS)
+    df = df.describe().T
+    df.drop(columns={'count'}, inplace=True)
+    df = df.applymap(lambda x: '{:.2f}'.format(x))
+    return df
+
+
+def get_results_for_key(results, sensors, key):
+    return [
+        results[sensor][key]
+        for sensor in sensors
+        if key in results[sensor].keys()
+    ]
+
+
+def render_results(df_fed, df_local):
+    color_fed = []
+    color_local = []
+    for i in range(len(METRICS)):
+        if (i < len(METRICS) - 1):  # because "Superior Pred %" metric needs to be superior=True
+            col_fed, col_local = get_color_fed_vs_local(df_fed.iloc[i]["mean"], df_local.iloc[i]["mean"], superior=False)
+        else:
+            col_fed, col_local = get_color_fed_vs_local(df_fed.iloc[i]["mean"], df_local.iloc[i]["mean"], superior=True)
+        color_fed.append(col_fed)
+        color_local.append(col_local)

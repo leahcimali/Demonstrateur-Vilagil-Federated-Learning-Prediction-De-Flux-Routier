@@ -14,3 +14,17 @@
     * ``` bash
         streamlit.exe run ./src/Home.py
         ```
+
+# How to visualize your Cluster experiments
+
+Put all your clusters experiments in community_experiments/[Name_of_your_cluster_exp]/   
+e.g.
+
+```py
+community_experiments/
+                    experiments_with_28_clusters/
+                                                community_1/
+                                                community_2/
+                                                ...
+                                                community_n_or_what_you_want/
+```

@@ -1,16 +1,14 @@
 ###############################################################################
 # Libraries
 ###############################################################################
-import glob
 from pathlib import PurePath
 import streamlit as st
-import pandas as pd
 import plotly.graph_objects as go
 import networkx as nx
 from utils_data import load_PeMS04_flow_data
 from utils_graph import create_graph
 
-
+from ClusterData import ClusterData
 from utils_streamlit_app import load_experiment_results, load_experiment_config
 
 
@@ -23,81 +21,12 @@ METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
 #######################################################################
 # Function(s)
 #######################################################################
-class Cluster:
-    def __init__(self, cluster, config_cluster):
-        super(Cluster, self).__init__()
-        self.cluster = cluster
-        self.parameters = config_cluster
-        self.sensors = cluster.keys()
-        self.sensors_name = config_cluster["nodes_to_filter"]
-        self.name = config_cluster["save_model_path"]
-        self.size = len(cluster)
-
-    def get_sensor_metric_local_values(self, node, metric):
-        return self.cluster[node]["local_only"][metric]
-
-    def get_sensor_metric_federated_values(self, node, metric):
-        return self.cluster[node]["Federated"][metric]
-
-    def get_nb_sensor_better_in_federation(self, metric):
-        nb_sensor = 0
-        if metric != "Superior Pred %":
-            for sensor in self.sensors:
-                if self.cluster[sensor]["Federated"][metric] <= self.cluster[sensor]["local_only"][metric]:
-                    nb_sensor += 1
-        else:
-            for sensor in self.sensors:
-                if self.cluster[sensor]["Federated"][metric] >= self.cluster[sensor]["local_only"][metric]:
-                    nb_sensor += 1
-        return nb_sensor
-
-    def show_parameters(self):
-        # Création du DataFrame
-        df_parameters = pd.DataFrame(self.parameters, columns=["time_serie_percentage_length",
-                                                    "batch_size",
-                                                    "number_of_nodes",
-                                                    "nodes_to_filter",
-                                                    "window_size",
-                                                    "prediction_horizon",
-                                                    "communication_rounds",
-                                                    "num_epochs_local_federation",
-                                                    "epoch_local_retrain_after_federation",
-                                                    "num_epochs_local_no_federation",
-                                                    "model"]).iloc[0]
-        # Renommage des colonnes
-        column_names = {
-            "time_serie_percentage_length": "Length of the time serie used",
-            "batch_size": "Batch Size",
-            "number_of_nodes": "Number of Nodes",
-            "nodes_to_filter": "Sensor use",
-            "window_size": "WS",
-            "prediction_horizon": "PH",
-            "communication_rounds": "CR",
-            "num_epochs_local_no_federation": "Epochs alone",
-            "num_epochs_local_federation": "Epochs Federation",
-            "epoch_local_retrain_after_federation": "Epoch Local Retrain",
-            "learning_rate": "Learning Rate",
-            "model": "Model"
-        }
-
-        # Affichage du tableau récapitulatif
-        st.subheader("Parameters of the cluster")
-        st.write("Note: only the number of sensor and the sensors use in the cluster change between clusters.")
-        st.write("")
-        st.write("WS (**Windows size**), how many steps use to make a prediction")
-        st.write("PH (**Prediction horizon**), how far the prediction goes (how many steps)")
-        st.write("CR (**Communication round**), how many time the central server and the clients communicate")
-        df_parameters.index.name = "Parameters"
-        df_parameters = df_parameters.rename(column_names)
-        st.dataframe(df_parameters, use_container_width=True)
-
-
 def render_bar_plot_fed_vs_local(cluster, metric, sorted_by: str, descending: str):
     st.subheader(f"Comparison between the federated version and local version with the {metric} metric on each sensors")
 
     value_metric_federated = []
     value_metric_local = []
-    for sensor in cluster.sensors:
+    for sensor in cluster.indexes:
         value_metric_local.append(cluster.get_sensor_metric_local_values(sensor, metric))
         value_metric_federated.append(cluster.get_sensor_metric_federated_values(sensor, metric))
 
@@ -254,26 +183,32 @@ st.write("""
         """)
 st.divider()
 
-# Chargement des configurations des expérimentations
-experiments_folder = "community_experiment/"  # Chemin où toutes les expérimentations sont enregistrées
-experiments_path = glob.glob(f"./{experiments_folder}**/config.json", recursive=True)
 
-clusters = {}
-for path_exp in experiments_path:
-    path_exp_parent = PurePath(path_exp).parent
-    cluster = Cluster(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
-    clusters[cluster.name.split("/")[1]] = cluster
+def one_cluster(experiments_path):
+    clusters = {}
+    for path_exp in experiments_path:
+        path_exp_parent = PurePath(path_exp).parent
+        cluster = ClusterData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
+        clusters[cluster.name.split("/")[1]] = cluster
 
-cluster = st.selectbox("Select the cluster", list(clusters))
-clusters[cluster].show_parameters()
+    cluster = st.selectbox("Select the cluster", list(clusters))
+    st.subheader(f"Nb sensor in the cluster : {clusters[cluster].size}")
 
-_, distance = load_PeMS04_flow_data()
-G = create_graph(distance)
-render_graph(G, clusters[cluster])
-metric = st.selectbox("Choose the metric", METRICS)
-col1, col2 = st.columns(2)
-with col1:
-    descending = st.radio("Sorted:", ["Descending", "Ascending"], index=1)
-with col2:
-    sorted_by = st.radio("Sorted_by:", ["Federated", "Local"], index=1)
-render_bar_plot_fed_vs_local(clusters[cluster], metric, sorted_by, descending=descending)
+    _, distance = load_PeMS04_flow_data()
+    G = create_graph(distance)
+    with st.spinner('Plotting...'):
+        render_graph(G, clusters[cluster])
+
+        metric = st.selectbox("Choose the metric", METRICS)
+        col1, col2 = st.columns(2)
+        with col1:
+            descending = st.radio("Sorted:", ["Descending", "Ascending"], index=1)
+        with col2:
+            sorted_by = st.radio("Sorted_by:", ["Federated", "Local"], index=0)
+        render_bar_plot_fed_vs_local(clusters[cluster], metric, sorted_by, descending=descending)
+
+    def format_selectbox_sensor(value):
+        return clusters[cluster].sensors_name[int(value)]
+
+    sensor_selected = st.selectbox('Choose the sensor', clusters[cluster].indexes, format_func=format_selectbox_sensor)
+    clusters[cluster].show_results_sensor(sensor_selected)
