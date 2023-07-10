@@ -1,6 +1,7 @@
 ###############################################################################
 # Libraries
 ###############################################################################
+import colorsys
 import glob
 import math
 from pathlib import PurePath
@@ -37,37 +38,6 @@ class Cluster:
         self.sensors = [config_cluster["nodes_to_filter"][int(index)] for index in cluster.keys()]
         self.name = str(config_cluster["nodes_to_filter"])
         self.size = len(self.cluster)
-        self.general_stats_local_only = pd.DataFrame([
-            cluster[sensor]["local_only"]
-            for sensor in cluster.keys()
-        ]).describe().T
-        self.general_stats_federated = pd.DataFrame([
-            cluster[sensor]["Federated"]
-            for sensor in cluster.keys()
-        ]).describe().T
-
-    def get_general_metric_mean_local(self, metric):
-        """Return the general average for the local version of a choosen metric
-
-        Args:
-            metric (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """
-        st.write(self.general_stats_local_only)
-        return self.general_stats_local_only.loc[metric]["mean"].item()
-
-    def get_general_metric_mean_federated(self, metric):
-        """Return the general average for the federated version of a choosen metric
-
-        Args:
-            metric (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """
-        return self.general_stats_federated.loc[metric]["mean"].item()
 
     def get_nb_sensor_better_in_federation(self, metric):
         return (
@@ -122,9 +92,15 @@ class Cluster:
 
 
 def generate_colors(num_colors):
-    colormap = plt.cm.get_cmap('hsv', num_colors)
-    colors = [colormap(i) for i in range(num_colors)]
-    return [mcolors.to_rgb(color) for color in colors]
+    colors = []
+    phi = (1 + math.sqrt(5)) / 2  # Nombre d'or
+    for i in range(num_colors):
+        couleur_index = int(math.floor(i * phi))
+        couleur_r = (couleur_index * 137) % 256
+        couleur_g = (couleur_index * 103) % 256
+        couleur_b = (couleur_index * 143) % 256
+        colors.append(f"rgb({couleur_r}, {couleur_g}, {couleur_b})")
+    return colors
 
 
 def get_couleurs(list_numbers):
@@ -209,7 +185,7 @@ def render_graph_neighborhood(graph):
 
 def render_graph_colored_with_cluster(graph, clusters):
     st.subheader("Network graph with sensors colored based on their cluster membership")
-    colors_cluster = [f"rgb({int(r * 255)}, {int(g * 255)}, {int(b * 255)})" for r, g, b in generate_colors(28)]
+    colors_cluster = generate_colors(28)
     for i in range(len(clusters)):
         color_cluster = colors_cluster[i]
         for sensor in clusters[i].sensors:
