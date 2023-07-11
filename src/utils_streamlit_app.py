@@ -196,8 +196,8 @@ def selection_of_experiment_cluster():
         return None
 
 
-def rgb_to_hex(rgb):
-    return '#%02x%02x%02x' % rgb
+def create_selectbox_metrics():
+    return st.selectbox("Choose the metric", METRICS)
 
 
 def create_circle_precision_predict(marker_location, value_percent, map_folium, color):
@@ -303,7 +303,3 @@ def get_colors_for_results(df_fed, df_local, columns):
 
 def results_to_dataframe(results, sensor_selected, version):
     return pd.DataFrame(results[sensor_selected][version], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
-
-
-def create_selectbox_metrics():
-    return st.selectbox("Choose the metric", METRICS)
