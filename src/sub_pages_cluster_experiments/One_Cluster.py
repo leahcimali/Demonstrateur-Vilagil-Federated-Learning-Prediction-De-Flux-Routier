@@ -9,13 +9,7 @@ from utils_data import load_PeMS04_flow_data
 from utils_graph import create_graph
 
 from ClusterData import ClusterData
-from utils_streamlit_app import load_experiment_results, load_experiment_config
-
-
-#######################################################################
-# Constant(s)
-#######################################################################
-METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
+from utils_streamlit_app import load_experiment_results, load_experiment_config, create_selectbox_metrics
 
 
 #######################################################################
@@ -199,7 +193,7 @@ def one_cluster(experiments_path):
     with st.spinner('Plotting...'):
         render_graph(G, clusters[cluster])
 
-        metric = st.selectbox("Choose the metric", METRICS)
+        metric = create_selectbox_metrics()
         col1, col2 = st.columns(2)
         with col1:
             descending = st.radio("Sorted:", ["Descending", "Ascending"], index=1)

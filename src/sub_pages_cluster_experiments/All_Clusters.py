@@ -18,12 +18,6 @@ from utils_streamlit_app import load_experiment_results, load_experiment_config
 random.seed(42)
 
 #######################################################################
-# Constant(s)
-#######################################################################
-METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
-
-
-#######################################################################
 # Function(s)
 #######################################################################
 def generate_colors(num_colors):

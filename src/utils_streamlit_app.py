@@ -272,7 +272,7 @@ def style_dataframe(df, colors=None, column_index=None):
     return styles
 
 
-def results_to_dataframe(results):
+def results_to_stats_dataframe(results):
     df = pd.DataFrame(results, columns=METRICS)
     df = df.describe().T
     df.drop(columns={'count'}, inplace=True)
@@ -288,13 +288,22 @@ def get_results_for_key(results, sensors, key):
     ]
 
 
-def render_results(df_fed, df_local):
+def get_colors_for_results(df_fed, df_local, columns):
     color_fed = []
     color_local = []
     for i in range(len(METRICS)):
         if (i < len(METRICS) - 1):  # because "Superior Pred %" metric needs to be superior=True
-            col_fed, col_local = get_color_fed_vs_local(df_fed.iloc[i]["mean"], df_local.iloc[i]["mean"], superior=False)
+            col_fed, col_local = get_color_fed_vs_local(df_fed.iloc[i][columns], df_local.iloc[i][columns], superior=False)
         else:
-            col_fed, col_local = get_color_fed_vs_local(df_fed.iloc[i]["mean"], df_local.iloc[i]["mean"], superior=True)
+            col_fed, col_local = get_color_fed_vs_local(df_fed.iloc[i][columns], df_local.iloc[i][columns], superior=True)
         color_fed.append(col_fed)
         color_local.append(col_local)
+    return color_fed, color_local
+
+
+def results_to_dataframe(results, sensor_selected, version):
+    return pd.DataFrame(results[sensor_selected][version], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
+
+
+def create_selectbox_metrics():
+    return st.selectbox("Choose the metric", METRICS)
