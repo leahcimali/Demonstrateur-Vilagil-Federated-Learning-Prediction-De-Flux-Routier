@@ -59,37 +59,35 @@ class ClusterData:
     def show_parameters(self):
         df_parameters = pd.DataFrame(self.parameters, columns=["time_serie_percentage_length",
                                                     "batch_size",
-                                                    "nodes_to_filter",
                                                     "window_size",
                                                     "prediction_horizon",
                                                     "communication_rounds",
                                                     "num_epochs_local_federation",
-                                                    "epoch_local_retrain_after_federation",
                                                     "num_epochs_local_no_federation",
-                                                    "model"]).iloc[0]
+                                                    "model"], index=["Value"])
         column_names = {
             "time_serie_percentage_length": "Length of the time serie used",
             "batch_size": "Batch Size",
-            "nodes_to_filter": "Sensor use",
             "window_size": "WS",
             "prediction_horizon": "PH",
             "communication_rounds": "CR",
             "num_epochs_local_no_federation": "Epochs alone",
             "num_epochs_local_federation": "Epochs Federation",
-            "epoch_local_retrain_after_federation": "Epoch Local Retrain",
             "learning_rate": "Learning Rate",
             "model": "Model"
         }
-
         st.subheader("Parameters of the cluster")
-        st.write("Note: only the number of sensor and the sensors use in the cluster change between clusters.")
+        st.write("Note: Only the number of sensors and the sensors used in the cluster change between clusters.")
         st.write("")
-        st.write("WS (**Windows size**), how many steps use to make a prediction")
-        st.write("PH (**Prediction horizon**), how far the prediction goes (how many steps)")
-        st.write("CR (**Communication round**), how many time the central server and the clients communicate")
+        st.write("Length of Time Series: Percentage of the time series used before splitting the dataset into train/validation/test sets.")
+        st.write("Window Size (**WS**): The number of time steps in the historical data considered by the model for making predictions.")
+        st.write("Prediction Horizon (**PH**): The number of time steps or observations to forecast beyond the last observation in the input window.")
+        st.write("Communication Round (**CR**): The iteration or cycle of communication between the central server and the actors during the training process.")
+        st.write("Epochs Federation: The number of epochs an actor performs before sending its model to the central server.")
+        st.write("Epochs local alone: The number of epochs used to train the local version, which will be compared to the federated version.")
+
         df_parameters.index.name = "Parameters"
-        df_parameters = df_parameters.rename(column_names)
+        df_parameters = df_parameters.rename(columns=column_names)
         df_parameters["WS"] = pd.Series(df_parameters["WS"]).apply(lambda x: f"t+{x} ({int((float(x) * 5) / 60)}h)")[0]
         df_parameters["PH"] = pd.Series(df_parameters["PH"]).apply(lambda x: f"t+{x} ({int((float(x) * 5) / 60)}h)")[0]
-        df_parameters = df_parameters.rename("Values")
-        st.dataframe(df_parameters, use_container_width=True)
+        st.dataframe(df_parameters.T, use_container_width=True)
