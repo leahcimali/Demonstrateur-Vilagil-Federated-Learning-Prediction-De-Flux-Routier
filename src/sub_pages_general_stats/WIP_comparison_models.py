@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode
 
 
-from utils_streamlit_app import format_radio
+from utils_streamlit_app import format_radio, load_experiment_config, load_experiment_results
 
 
 #######################################################################
@@ -79,6 +79,47 @@ def box_plot_comparison(serie_1, serie_2, name_1: str, name_2: str, title: str, 
     return fig
 
 
+def get_index_with_id(df, id):
+    index = df["id"] == id
+    return df[index].index[0]
+
+
+def filter_df(df, source_experiment, filter):
+    """filter
+
+    Args:
+        df (_type_): _description_
+        source_experiment (_type_): _description_
+        filter (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    df_filtered = copy.copy(df)
+
+    # first filter: parameters have to be differents
+    for param in filter:
+        if param != "Sensor use":
+            df_filtered = df_filtered[(df_filtered[param] != source_experiment[param].iloc[0])]
+
+    # second filter: parameters to be the same
+    for param in source_experiment.columns:
+        if param not in filter and param != "Sensor use" and param != "id":
+            df_filtered = df_filtered[(df_filtered[param] == source_experiment[param].iloc[0])]
+
+    # third filter (Very specific)
+    for i in df_filtered.index:
+        if "Sensor use" in filter:
+            if all(x in source_experiment["Sensor use"].iloc[0] for x in df_filtered.loc[i]["Sensor use"]):
+                df_filtered = df_filtered.drop([i])
+        elif any(x not in source_experiment["Sensor use"].iloc[0] for x in df_filtered.loc[i]["Sensor use"]):
+            df_filtered = df_filtered.drop([i])
+
+    # fourth filter (also a specific one)
+    df_filtered = df_filtered[(df_filtered["id"] != source_experiment["id"].iloc[0])]
+    return df_filtered
+
+
 #######################################################################
 # Main
 #######################################################################
@@ -93,18 +134,24 @@ def WIP_comparison_models():
             """)
     st.divider()
 
-    # Chargement des configurations des expérimentations
-    experiments_path = "experiments/"  # Chemin où toutes les expérimentations sont enregistrées
-    config_files = glob.glob(f"./{experiments_path}**/config.json", recursive=True)
+    experiments_path = "experiments"
+    path_files = glob.glob(f"./{experiments_path}/*/", recursive=True)
+    experiments = []
+    experiments_config = []
+    for path in path_files:
+        path_exp = PurePath(path)
+        config = load_experiment_config(path_exp)
+        resultats = load_experiment_results(path_exp)
+        experiments.append({
+            config["save_model_path"]:
+            {
+                "config": config,
+                "resultats": resultats
+            }
+        })
+        experiments_config.append(config)
 
-    experiments_data = []
-    for config_file in config_files:
-        with open(config_file, 'r') as f:
-            config = json.load(f)
-            experiments_data.append(config)
-
-    # Création du DataFrame
-    df = pd.DataFrame(experiments_data, columns=["time_serie_percentage_length",
+    df = pd.DataFrame(experiments_config, columns=["time_serie_percentage_length",
                                                 "batch_size",
                                                 "number_of_nodes",
                                                 "nodes_to_filter",
@@ -114,8 +161,8 @@ def WIP_comparison_models():
                                                 "num_epochs_local_federation",
                                                 "epoch_local_retrain_after_federation",
                                                 "num_epochs_local_no_federation",
-                                                "model"])
-    # Renommage des colonnes
+                                                "model",
+                                                "save_model_path"])
     column_names = {
         "time_serie_percentage_length": "Length of the time serie used",
         "batch_size": "Batch Size",
@@ -126,19 +173,21 @@ def WIP_comparison_models():
         "communication_rounds": "CR",
         "num_epochs_local_no_federation": "Epochs alone",
         "num_epochs_local_federation": "Epochs Federation",
-        "epoch_local_retrain_after_federation": "Epoch Local Retrain",
+        "epoch_local_retrain_after_federation": "Epochs Local Retrain",
         "learning_rate": "Learning Rate",
-        "model": "Model"
+        "model": "Model",
+        "save_model_path": "id"
     }
 
     df = df.rename(columns=column_names)
 
-    # Affichage du tableau récapitulatif
-    st.write("**Summary of experiments**")
-    st.write("")
-    st.write("WS (**Windows size**), how many steps use to make a prediction")
-    st.write("PH (**Prediction horizon**), how far the prediction goes (how many steps)")
-    st.write("CR (**Communication round**), how many time the central server and the clients communicate")
+    st.write("**Configuration explanations:**")
+    st.write("*Length of Time Series: Percentage of the time series used before splitting the dataset into train/validation/test sets.")
+    st.write("*Window Size (**WS**): The number of time steps in the historical data considered by the model for making predictions.")
+    st.write("*Prediction Horizon (**PH**): The number of time steps or observations to forecast beyond the last observation in the input window.")
+    st.write("*Communication Round (**CR**): The iteration or cycle of communication between the central server and the actors during the training process.")
+    st.write("*Epochs Federation: The number of epochs an actor performs before sending its model to the central server.")
+    st.write("*Epochs local alone: The number of epochs used to train the local version, which will be compared to the federated version.")
 
     gb = GridOptionsBuilder.from_dataframe(df[df.columns])
     gb.configure_selection(selection_mode="single", use_checkbox=True)
@@ -151,27 +200,17 @@ def WIP_comparison_models():
     )
 
     selected_rows = data["selected_rows"]
-
     if len(selected_rows) > 0:
-        index_row_selected = selected_rows[0]["_selectedRowNodeInfo"]["nodeRowIndex"]
-        source_experiment = pd.DataFrame(df.iloc[index_row_selected]).rename(columns={index_row_selected: "Value"}).T
-        selected_parameters = st.multiselect("Pick parameters that you want to filter other experiments to make comparison", source_experiment.columns)
+        index_exp = get_index_with_id(df, selected_rows[0]['id'])
+        source_experiment = pd.DataFrame(df.iloc[index_exp]).rename(columns={index_exp: "Value"}).T
         st.dataframe(source_experiment.T, use_container_width=True)
-        df_new = copy.copy(df)
-        for param in selected_parameters:
-            if param != "Sensor use":
-                df_new = df_new[(df_new[param] != source_experiment[param].iloc[0])]
-        for param in source_experiment.columns:
-            if param not in selected_parameters and param != "Sensor use":
-                df_new = df_new[(df_new[param] == source_experiment[param].iloc[0])]
-        for i in df_new.index:
-            if "Sensor use" in selected_parameters:
-                if all(x in source_experiment["Sensor use"].iloc[0] for x in df_new.loc[i]["Sensor use"]):
-                    df_new = df_new.drop([i])
-            else:
-                if any(x not in source_experiment["Sensor use"].iloc[0] for x in df_new.loc[i]["Sensor use"]):
-                    df_new = df_new.drop([i])
-        st.write(df_new)
+
+        changing_parameters = list(source_experiment.columns)
+        changing_parameters.remove("id")
+        selected_changing_parameters_parameters = st.multiselect("Pick parameters that you want to filter other experiments to make comparison", changing_parameters)
+
+        df_filtered = filter_df(df, source_experiment, selected_changing_parameters_parameters)
+        st.dataframe(df_filtered, use_container_width=True)
 
 
 
