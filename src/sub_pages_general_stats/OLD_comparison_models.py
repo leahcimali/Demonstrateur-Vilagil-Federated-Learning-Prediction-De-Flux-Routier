@@ -1,12 +1,14 @@
 ###############################################################################
 # Libraries
 ###############################################################################
+import copy
 import glob
 import json
 from pathlib import PurePath
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode
 
 
 from utils_streamlit_app import format_radio, get_color_fed_vs_local, style_dataframe
@@ -79,7 +81,7 @@ def box_plot_comparison(serie_1, serie_2, name_1: str, name_2: str, title: str, 
 #######################################################################
 # Main
 #######################################################################
-def comparison_models():
+def OLD_comparison_models():
     st.subheader("Comparison Models")
     st.write("""
             * On this page select two experiments to compare them.

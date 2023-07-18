@@ -4,9 +4,8 @@ numpy==1.23.5
 pandas==2.0.2
 streamlit==1.22.0
 streamlit_folium==0.12.0
+streamlit-aggrid==0.3.4.post3
 st-annotated-text==4.0.0
 screeninfo==0.8.1
 scikit-learn==1.2.2
 plotly==5.15.0
-matplotlib==3.7.1
-altair==4.2.2
