@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 
-from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset
+from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset, normalize_center_reduce
 from src.utils_training import testmodel
 from src.metrics import calculate_metrics, metrics_table, Percentage_of_Superior_Predictions
 import src.config
@@ -68,40 +68,55 @@ with open(PATH_EXPERIMENTS / 'test.txt', 'w') as f:
 
         for node in range(len(params.nodes_to_filter)):
             metrics_dict[node] = {}
-            datadict[node]['test_data'] = datadict[node]['test_data'] * meanstd_dict[params.nodes_to_filter[node]]['std'] + meanstd_dict[params.nodes_to_filter[node]]['mean']
-
-            numpy.save(PATH_EXPERIMENTS / f"test_data_{node}", datadict[node]['test_data'])
+            numpy.save(PATH_EXPERIMENTS / f"test_data_{node}_normalized", datadict[node]['test_data'])
             numpy.save(PATH_EXPERIMENTS / f"index_{node}", datadict[node]['test_data'].index)
 
-            y_true, y_pred = testmodel(model(params.model_input_size,
-                                            params.model_hidden_size,
-                                            params.model_output_size,
-                                            params.model_num_layers),
-                                            datadict[node]['test'],
-                                            PATH_EXPERIMENTS / f'local{node}.pth',
-                                            meanstd_dict=meanstd_dict,
-                                            sensor_order_list=[params.nodes_to_filter[node]])
-            local_metrics = calculate_metrics(y_true, y_pred)
-            metrics_dict[node]['local_only'] = local_metrics
-            numpy.save(PATH_EXPERIMENTS / f'y_true_local_{node}', y_true)
-            numpy.save(PATH_EXPERIMENTS / f'y_pred_local_{node}', y_pred)
+            unnormalized_test_data = datadict[node]['test_data'] * meanstd_dict[params.nodes_to_filter[node]]['std'] + meanstd_dict[params.nodes_to_filter[node]]['mean']
+            numpy.save(PATH_EXPERIMENTS / f"test_data_{node}_unormalized", unnormalized_test_data)
 
-            y_true_fed, y_pred_fed = testmodel(model(params.model_input_size,
-                                                    params.model_hidden_size,
-                                                    params.model_output_size,
-                                                    params.model_num_layers),
-                                                    datadict[node]['test'],
-                                                    PATH_EXPERIMENTS / f'bestmodel_node{node}.pth',
-                                                    meanstd_dict=meanstd_dict,
-                                                    sensor_order_list=[params.nodes_to_filter[node]])
+            y_true_unormalized, y_pred_unormalized = testmodel(model(params.model_input_size,
+                                                        params.model_hidden_size,
+                                                        params.model_output_size,
+                                                        params.model_num_layers),
+                                                        datadict[node]['test'],
+                                                        PATH_EXPERIMENTS / f'local{node}.pth',
+                                                        meanstd_dict=meanstd_dict,
+                                                        sensor_order_list=[params.nodes_to_filter[node]])
+            local_metrics_unormalized = calculate_metrics(y_true_unormalized, y_pred_unormalized)
+            metrics_dict[node]['local_only_unormalized'] = local_metrics_unormalized
+            numpy.save(PATH_EXPERIMENTS / f'y_true_local_{node}_unormalized', y_true_unormalized)
+            numpy.save(PATH_EXPERIMENTS / f'y_pred_local_{node}_unormalized', y_pred_unormalized)
 
-            fed_metrics = calculate_metrics(y_true_fed, y_pred_fed)
-            metrics_dict[node]['Federated'] = fed_metrics
-            numpy.save(PATH_EXPERIMENTS / f'y_true_fed_{node}', y_true_fed)
-            numpy.save(PATH_EXPERIMENTS / f'y_pred_fed_{node}', y_pred_fed)
+            y_true_normalized, y_pred_normalized = normalize_center_reduce(y_pred_unormalized, y_true_unormalized, meanstd_dict, [params.nodes_to_filter[node]])
+            local_metrics_normalized = calculate_metrics(y_true_normalized, y_pred_normalized)
+            metrics_dict[node]['local_only_normalized'] = local_metrics_normalized
+            numpy.save(PATH_EXPERIMENTS / f'y_true_local_{node}_normalized', y_true_normalized)
+            numpy.save(PATH_EXPERIMENTS / f'y_pred_local_{node}_normalized', y_pred_normalized)
+
+            y_true_fed_unormalized, y_pred_fed_unormalized = testmodel(model(params.model_input_size,
+                                                                params.model_hidden_size,
+                                                                params.model_output_size,
+                                                                params.model_num_layers),
+                                                                datadict[node]['test'],
+                                                                PATH_EXPERIMENTS / f'bestmodel_node{node}.pth',
+                                                                meanstd_dict=meanstd_dict,
+                                                                sensor_order_list=[params.nodes_to_filter[node]])
+            fed_metrics_unormalized = calculate_metrics(y_true_fed_unormalized, y_pred_fed_unormalized)
+            metrics_dict[node]['Federated_unormalized'] = fed_metrics_unormalized
+            numpy.save(PATH_EXPERIMENTS / f'y_true_fed_{node}_unormalized', y_true_fed_unormalized)
+            numpy.save(PATH_EXPERIMENTS / f'y_pred_fed_{node}_unormalized', y_pred_fed_unormalized)
+
+            y_true_fed_normalized, y_pred_fed_normalized = normalize_center_reduce(y_pred_fed_unormalized, y_true_fed_unormalized, meanstd_dict, [params.nodes_to_filter[node]])
+            fed_metrics_normalized = calculate_metrics(y_true_normalized, y_pred_normalized)
+            metrics_dict[node]['Federated_normalized'] = fed_metrics_normalized
+            numpy.save(PATH_EXPERIMENTS / f'y_true_local_{node}_normalized', y_true_normalized)
+            numpy.save(PATH_EXPERIMENTS / f'y_pred_local_{node}_normalized', y_pred_normalized)
+
+            fed_metrics_unormalized['Superior Pred %'], local_metrics_unormalized['Superior Pred %'] = Percentage_of_Superior_Predictions(y_true_unormalized, y_pred_unormalized, y_true_fed_unormalized, y_pred_fed_unormalized)
+            fed_metrics_normalized['Superior Pred %'], local_metrics_normalized['Superior Pred %'] = Percentage_of_Superior_Predictions(y_true_normalized, y_pred_normalized, y_true_fed_normalized, y_pred_fed_normalized)
+
             print(f'Federated vs local only for node {node} :')
-            fed_metrics['Superior Pred %'], local_metrics['Superior Pred %'] = Percentage_of_Superior_Predictions(y_true, y_pred, y_true_fed, y_pred_fed)
-            print(metrics_table({'Local': local_metrics, 'Federated': fed_metrics}))
+            print(metrics_table({'Local': local_metrics_unormalized, 'Federated': fed_metrics_unormalized}))
 
 with open(PATH_EXPERIMENTS / "test.json", "w") as outfile:
     json.dump(metrics_dict, outfile)
