@@ -469,3 +469,24 @@ def plot_prediction(y_true, y_pred, test_data,meanstd_dict, window_size, time_po
     # Close the plot to free up memory (optional)
     plt.close()
 
+
+def unormalize_center_reduce(y_pred, y_true, meanstd_dict, sensor_order_list):
+    if len(sensor_order_list) > 1:
+        for k in range(len(sensor_order_list)):
+            y_pred[k] = y_pred[k] * meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+            y_true[k] = y_true[k] * meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+    elif len(sensor_order_list) == 1:
+        y_pred = y_pred * meanstd_dict[sensor_order_list[0]]['std'] + meanstd_dict[sensor_order_list[0]]['mean']
+        y_true = y_true * meanstd_dict[sensor_order_list[0]]['std'] + meanstd_dict[sensor_order_list[0]]['mean']
+    return y_true, y_pred
+
+
+def normalize_center_reduce(y_pred, y_true, meanstd_dict, sensor_order_list):
+    if len(sensor_order_list) > 1:
+        for k in range(len(sensor_order_list)):
+            y_pred[k] = (y_pred[k] - meanstd_dict[sensor_order_list[k]]['mean']) / meanstd_dict[sensor_order_list[k]]['std']
+            y_true[k] = (y_true[k] - meanstd_dict[sensor_order_list[k]]['mean']) / meanstd_dict[sensor_order_list[k]]['std']
+    elif len(sensor_order_list) == 1:
+        y_pred = (y_pred - meanstd_dict[sensor_order_list[0]]['mean']) / meanstd_dict[sensor_order_list[0]]['std']
+        y_true = (y_true - meanstd_dict[sensor_order_list[0]]['mean']) / meanstd_dict[sensor_order_list[0]]['std']
+    return y_true, y_pred
