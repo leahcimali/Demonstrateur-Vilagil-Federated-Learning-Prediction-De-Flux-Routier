@@ -7,12 +7,11 @@ import json
 from pathlib import PurePath
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode
 
 
-from utils_streamlit_app import format_radio, load_experiment_config, load_experiment_results
+from utils_streamlit_app import format_radio, get_color_fed_vs_local, load_experiment_config, load_experiment_results, style_dataframe
 
 
 #######################################################################
@@ -84,6 +83,10 @@ def get_index_with_id(df, id):
     return df[index].index[0]
 
 
+def get_exp_with_id(dict_exp, id):
+    return dict_exp[id]
+
+
 def filter_df(df, source_experiment, filter):
     """filter
 
@@ -136,19 +139,16 @@ def WIP_comparison_models():
 
     experiments_path = "experiments"
     path_files = glob.glob(f"./{experiments_path}/*/", recursive=True)
-    experiments = []
+    experiments = {}
     experiments_config = []
     for path in path_files:
         path_exp = PurePath(path)
         config = load_experiment_config(path_exp)
         resultats = load_experiment_results(path_exp)
-        experiments.append({
-            config["save_model_path"]:
-            {
-                "config": config,
-                "resultats": resultats
-            }
-        })
+        experiments[config["save_model_path"]] = {
+            "config": config,
+            "resultats": resultats
+        }
         experiments_config.append(config)
 
     df = pd.DataFrame(experiments_config, columns=["time_serie_percentage_length",
@@ -212,113 +212,103 @@ def WIP_comparison_models():
         df_filtered = filter_df(df, source_experiment, selected_changing_parameters_parameters)
         st.dataframe(df_filtered, use_container_width=True)
 
+    results_1 = get_exp_with_id(experiments, source_experiment["id"].iloc[0])["resultats"]
+    config_1 = get_exp_with_id(experiments, source_experiment["id"].iloc[0])["config"]
+    for i in range(len(df_filtered)):
+        results_2 = get_exp_with_id(experiments, df_filtered["id"].iloc[i])["resultats"]
 
+        config_2 = get_exp_with_id(experiments, df_filtered["id"].iloc[i])["config"]
 
-    # paths_experiment_selected = selection_of_experiments_custom()
-    # if (paths_experiment_selected is not None):
-    #     path_model_1 = paths_experiment_selected[0]
-    #     path_model_2 = paths_experiment_selected[1]
+        federated_results_model_1 = []
+        local_results_model_1 = []
+        for i in range(config_1["number_of_nodes"]):
+            if "Federated" in results_1["0"].keys():  # e.g. keys = ['Federated', 'local_only']
+                federated_results_model_1.append(results_1[str(i)]["Federated"])
+            if "local_only" in results_1["0"].keys():  # e.g. keys = ['Federated', 'local_only']
+                local_results_model_1.append(results_1[str(i)]["local_only"])
 
-    #     with open(f"{path_model_1}/test.json") as f:
-    #         results_1 = json.load(f)
-    #     with open(f"{path_model_1}/config.json") as f:
-    #         config_1 = json.load(f)
+        federated_results_model_1 = pd.DataFrame(federated_results_model_1, columns=METRICS)
+        local_results_model_1 = pd.DataFrame(local_results_model_1, columns=METRICS)
 
-    #     with open(f"{path_model_2}/test.json") as f:
-    #         results_2 = json.load(f)
-    #     with open(f"{path_model_2}/config.json") as f:
-    #         config_2 = json.load(f)
+        federated_results_model_2 = []
+        local_results_model_2 = []
+        for j in range(config_2["number_of_nodes"]):
+            if "Federated" in results_2["0"].keys():  # e.g. keys = ['Federated', 'local_only']
+                federated_results_model_2.append(results_2[str(j)]["Federated"])
+            if "local_only" in results_2["0"].keys():  # e.g. keys = ['Federated', 'local_only']
+                local_results_model_2.append(results_2[str(j)]["local_only"])
 
-    #     federated_results_model_1 = []
-    #     local_results_model_1 = []
-    #     for i in range(config_1["number_of_nodes"]):
-    #         if "Federated" in results_1["0"].keys():  # e.g. keys = ['Federated', 'local_only']
-    #             federated_results_model_1.append(results_1[str(i)]["Federated"])
-    #         if "local_only" in results_1["0"].keys():  # e.g. keys = ['Federated', 'local_only']
-    #             local_results_model_1.append(results_1[str(i)]["local_only"])
+        federated_results_model_2 = pd.DataFrame(federated_results_model_2, columns=METRICS)
+        local_results_model_2 = pd.DataFrame(local_results_model_2, columns=METRICS)
 
-    #     federated_results_model_1 = pd.DataFrame(federated_results_model_1, columns=METRICS)
-    #     local_results_model_1 = pd.DataFrame(local_results_model_1, columns=METRICS)
+        _, c2_title_df, _ = st.columns((2, 1, 2))
 
-    #     federated_results_model_2 = []
-    #     local_results_model_2 = []
-    #     for j in range(config_2["number_of_nodes"]):
-    #         if "Federated" in results_2["0"].keys():  # e.g. keys = ['Federated', 'local_only']
-    #             federated_results_model_2.append(results_2[str(j)]["Federated"])
-    #         if "local_only" in results_2["0"].keys():  # e.g. keys = ['Federated', 'local_only']
-    #             local_results_model_2.append(results_2[str(j)]["local_only"])
+        with c2_title_df:
+            st.header("Sensor in Federation/Local")
 
-    #     federated_results_model_2 = pd.DataFrame(federated_results_model_2, columns=METRICS)
-    #     local_results_model_2 = pd.DataFrame(local_results_model_2, columns=METRICS)
+        c1_model_1, c2_model_2 = st.columns(2)
 
-    #     _, c2_title_df, _ = st.columns((2, 1, 2))
+        federated_results_model_1_stats = federated_results_model_1.describe().T
+        local_results_model_1_stats = local_results_model_1.describe().T
+        federated_results_model_2_stats = federated_results_model_2.describe().T
+        local_results_model_2_stats = local_results_model_2.describe().T
 
-    #     with c2_title_df:
-    #         st.header("Sensor in Federation/Local")
+        color_fed_model_1 = []
+        color_local_model_1 = []
+        color_fed_model_2 = []
+        color_local_model_2 = []
+        for i in range(len(METRICS)):
+            if (i < 3):  # because "Superior Pred %" metric needs to be superior=True
+                col_fed_model_1, col_fed_model_2 = get_color_fed_vs_local(federated_results_model_1_stats.iloc[i]["mean"], federated_results_model_2_stats.iloc[i]["mean"], superior=False)
+                col_local_model_1, col_local_model_2 = get_color_fed_vs_local(local_results_model_1_stats.iloc[i]["mean"], local_results_model_2_stats.iloc[i]["mean"], superior=False)
+            else:
+                col_fed_model_1, col_fed_model_2 = get_color_fed_vs_local(federated_results_model_1_stats.iloc[i]["mean"], federated_results_model_2_stats.iloc[i]["mean"], superior=True)
+                col_local_model_1, col_local_model_2 = get_color_fed_vs_local(local_results_model_1_stats.iloc[i]["mean"], local_results_model_2_stats.iloc[i]["mean"], superior=True)
+            color_fed_model_1.append(col_fed_model_1)
+            color_local_model_1.append(col_local_model_1)
+            color_fed_model_2.append(col_fed_model_2)
+            color_local_model_2.append(col_local_model_2)
+        #######################################################################
+        # Model 1
+        #######################################################################
+        with c1_model_1:
+            model_1_name = config_1["model"]
+            st.divider()
+            st.subheader(f"{model_1_name}")
+            st.divider()
 
-    #     c1_model_1, c2_model_2 = st.columns(2)
+            st.subheader("Federated Version")
+            st.table(federated_results_model_1_stats.style.set_table_styles(style_dataframe(federated_results_model_1_stats, colors=color_fed_model_1, column_index=3)).format("{:.2f}"))
+            st.subheader("Local Version")
+            st.table(local_results_model_1_stats.style.set_table_styles(style_dataframe(local_results_model_1_stats, colors=color_local_model_1, column_index=3)).format("{:.2f}"))
+            st.plotly_chart(
+                box_plot_comparison(federated_results_model_1["RMSE"],
+                                    local_results_model_1["RMSE"],
+                                    "Federated",
+                                    "Local",
+                                    config_1["model"],
+                                    "Version",
+                                    "RMSE Values"),
+                use_container_width=True)
 
-    #     federated_results_model_1_stats = federated_results_model_1.describe().T
-    #     local_results_model_1_stats = local_results_model_1.describe().T
-    #     federated_results_model_2_stats = federated_results_model_2.describe().T
-    #     local_results_model_2_stats = local_results_model_2.describe().T
-
-    #     color_fed_model_1 = []
-    #     color_local_model_1 = []
-    #     color_fed_model_2 = []
-    #     color_local_model_2 = []
-    #     for i in range(len(METRICS)):
-    #         if (i < 3):  # because "Superior Pred %" metric needs to be superior=True
-    #             col_fed_model_1, col_fed_model_2 = get_color_fed_vs_local(federated_results_model_1_stats.iloc[i]["mean"], federated_results_model_2_stats.iloc[i]["mean"], superior=False)
-    #             col_local_model_1, col_local_model_2 = get_color_fed_vs_local(local_results_model_1_stats.iloc[i]["mean"], local_results_model_2_stats.iloc[i]["mean"], superior=False)
-    #         else:
-    #             col_fed_model_1, col_fed_model_2 = get_color_fed_vs_local(federated_results_model_1_stats.iloc[i]["mean"], federated_results_model_2_stats.iloc[i]["mean"], superior=True)
-    #             col_local_model_1, col_local_model_2 = get_color_fed_vs_local(local_results_model_1_stats.iloc[i]["mean"], local_results_model_2_stats.iloc[i]["mean"], superior=True)
-    #         color_fed_model_1.append(col_fed_model_1)
-    #         color_local_model_1.append(col_local_model_1)
-    #         color_fed_model_2.append(col_fed_model_2)
-    #         color_local_model_2.append(col_local_model_2)
-    #     #######################################################################
-    #     # Model 1
-    #     #######################################################################
-    #     with c1_model_1:
-    #         model_1_name = config_1["model"]
-    #         st.divider()
-    #         st.subheader(f"{model_1_name}")
-    #         st.divider()
-
-    #         st.subheader("Federated Version")
-    #         st.table(federated_results_model_1_stats.style.set_table_styles(style_dataframe(federated_results_model_1_stats, colors=color_fed_model_1, column_index=3)).format("{:.2f}"))
-    #         st.subheader("Local Version")
-    #         st.table(local_results_model_1_stats.style.set_table_styles(style_dataframe(local_results_model_1_stats, colors=color_local_model_1, column_index=3)).format("{:.2f}"))
-    #         st.plotly_chart(
-    #             box_plot_comparison(federated_results_model_1["RMSE"],
-    #                                 local_results_model_1["RMSE"],
-    #                                 "Federated",
-    #                                 "Local",
-    #                                 config_1["model"],
-    #                                 "Version",
-    #                                 "RMSE Values"),
-    #             use_container_width=True)
-
-    #     #######################################################################
-    #     # Model 2
-    #     #######################################################################
-    #     with c2_model_2:
-    #         model_2_name = config_2["model"]
-    #         st.divider()
-    #         st.subheader(f"{model_2_name}")
-    #         st.divider()
-    #         st.subheader("Federated Version")
-    #         st.table(federated_results_model_2_stats.style.set_table_styles(style_dataframe(federated_results_model_2_stats, colors=color_fed_model_2, column_index=3)).format("{:.2f}"))
-    #         st.subheader("Local Version")
-    #         st.table(local_results_model_2_stats.style.set_table_styles(style_dataframe(local_results_model_2_stats, colors=color_local_model_2, column_index=3)).format("{:.2f}"))
-    #         st.plotly_chart(
-    #             box_plot_comparison(federated_results_model_2["RMSE"],
-    #                                 local_results_model_2["RMSE"],
-    #                                 "Federated",
-    #                                 "Local",
-    #                                 config_2["model"],
-    #                                 "Version",
-    #                                 "RMSE Values"),
-    #             use_container_width=True)
+        #######################################################################
+        # Model 2
+        #######################################################################
+        with c2_model_2:
+            model_2_name = config_2["model"]
+            st.divider()
+            st.subheader(f"{model_2_name}")
+            st.divider()
+            st.subheader("Federated Version")
+            st.table(federated_results_model_2_stats.style.set_table_styles(style_dataframe(federated_results_model_2_stats, colors=color_fed_model_2, column_index=3)).format("{:.2f}"))
+            st.subheader("Local Version")
+            st.table(local_results_model_2_stats.style.set_table_styles(style_dataframe(local_results_model_2_stats, colors=color_local_model_2, column_index=3)).format("{:.2f}"))
+            st.plotly_chart(
+                box_plot_comparison(federated_results_model_2["RMSE"],
+                                    local_results_model_2["RMSE"],
+                                    "Federated",
+                                    "Local",
+                                    config_2["model"],
+                                    "Version",
+                                    "RMSE Values"),
+                use_container_width=True)
