@@ -107,10 +107,10 @@ with open(PATH_EXPERIMENTS / 'test.txt', 'w') as f:
             numpy.save(PATH_EXPERIMENTS / f'y_pred_fed_{node}_unormalized', y_pred_fed_unormalized)
 
             y_true_fed_normalized, y_pred_fed_normalized = normalize_center_reduce(y_pred_fed_unormalized, y_true_fed_unormalized, meanstd_dict, [params.nodes_to_filter[node]])
-            fed_metrics_normalized = calculate_metrics(y_true_normalized, y_pred_normalized)
+            fed_metrics_normalized = calculate_metrics(y_true_fed_normalized, y_pred_fed_normalized)
             metrics_dict[node]['Federated_normalized'] = fed_metrics_normalized
-            numpy.save(PATH_EXPERIMENTS / f'y_true_local_{node}_normalized', y_true_normalized)
-            numpy.save(PATH_EXPERIMENTS / f'y_pred_local_{node}_normalized', y_pred_normalized)
+            numpy.save(PATH_EXPERIMENTS / f'y_true_fed_{node}_normalized', y_true_fed_normalized)
+            numpy.save(PATH_EXPERIMENTS / f'y_pred_fed_{node}_normalized', y_pred_fed_normalized)
 
             fed_metrics_unormalized['Superior Pred %'], local_metrics_unormalized['Superior Pred %'] = Percentage_of_Superior_Predictions(y_true_unormalized, y_pred_unormalized, y_true_fed_unormalized, y_pred_fed_unormalized)
             fed_metrics_normalized['Superior Pred %'], local_metrics_normalized['Superior Pred %'] = Percentage_of_Superior_Predictions(y_true_normalized, y_pred_normalized, y_true_fed_normalized, y_pred_fed_normalized)
