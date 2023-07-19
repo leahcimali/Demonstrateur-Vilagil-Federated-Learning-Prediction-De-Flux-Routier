@@ -46,10 +46,10 @@ WIDTH = min(width)
 # Function(s)
 #######################################################################
 def load_experiment_results(experiment_path, sensor_selected):
-    y_true = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}.npy")
-    y_pred_local = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}.npy")
-    y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}.npy")
-    return y_true, y_pred_local, y_pred_fed
+    y_true_unormalized = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}_unormalized.npy")
+    y_pred_local_unormalized = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}_unormalized.npy")
+    y_pred_fed_unormalized = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}_unormalized.npy")
+    return y_true_unormalized, y_pred_local_unormalized, y_pred_fed_unormalized
 
 
 def text_introduction_map():

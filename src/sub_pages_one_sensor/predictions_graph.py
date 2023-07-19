@@ -26,11 +26,11 @@ def text_introduction():
 
 
 def load_experiment_results(experiment_path, sensor_selected):
-    y_true = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}.npy")
-    y_pred_local = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}.npy")
-    y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}.npy")
-    test_set = load_numpy(f"{experiment_path}/test_data_{sensor_selected}.npy")
-    return y_true, y_pred_local, y_pred_fed, test_set
+    y_true_unormalized = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}_unormalized.npy")
+    y_pred_local_unormalized = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}_unormalized.npy")
+    y_pred_fed_unormalized = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}_unormalized.npy")
+    test_set = load_numpy(f"{experiment_path}/test_data_{sensor_selected}_unormalized.npy")
+    return y_true_unormalized, y_pred_local_unormalized, y_pred_fed_unormalized, test_set
 
 
 #######################################################################
@@ -206,8 +206,6 @@ def render_prediction_graph(experiment_path, sensor_selected):
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
     slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - config["prediction_horizon"] - config["window_size"] - 1, 0, key="MAP_and_Graph")
-
-    st.subheader(f"working on sensor {config['nodes_to_filter'][int(sensor_selected)]}")
 
     fig_fed_local = graph_prediction(experiment_path, index, config, sensor_selected, slider)
 

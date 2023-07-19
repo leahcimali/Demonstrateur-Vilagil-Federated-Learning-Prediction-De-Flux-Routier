@@ -5,11 +5,9 @@ from pathlib import PurePath
 import streamlit as st
 import plotly.graph_objects as go
 import networkx as nx
-from utils_data import load_PeMS04_flow_data
-from utils_graph import create_graph
 
 from ClusterData import ClusterData
-from utils_streamlit_app import load_experiment_results, load_experiment_config, create_selectbox_metrics
+from utils_streamlit_app import load_experiment_results, load_experiment_config, create_selectbox_metrics, load_graph
 
 
 #######################################################################
@@ -21,8 +19,8 @@ def render_bar_plot_fed_vs_local(cluster, metric, sorted_by: str, descending: st
     value_metric_federated = []
     value_metric_local = []
     for sensor in cluster.indexes:
-        value_metric_local.append(cluster.get_sensor_metric_local_values(sensor, metric))
-        value_metric_federated.append(cluster.get_sensor_metric_federated_values(sensor, metric))
+        value_metric_local.append(cluster.get_sensor_metric_unormalized_local_values(sensor, metric))
+        value_metric_federated.append(cluster.get_sensor_metric_unormalized_federated_values(sensor, metric))
 
     descending = descending == "Descending"
     if sorted_by == "Federated":
@@ -187,10 +185,8 @@ def one_cluster(experiments_path):
 
     cluster = st.selectbox("Select the cluster", list(clusters))
     st.subheader(f"Nb sensor in the cluster : {clusters[cluster].size}")
-
-    _, distance = load_PeMS04_flow_data()
-    G = create_graph(distance)
     with st.spinner('Plotting...'):
+        G = load_graph()
         render_graph(G, clusters[cluster])
 
         metric = create_selectbox_metrics()
@@ -205,4 +201,5 @@ def one_cluster(experiments_path):
         return clusters[cluster].sensors_name[int(value)]
 
     sensor_selected = st.selectbox('Choose the sensor', clusters[cluster].indexes, format_func=format_selectbox_sensor)
-    clusters[cluster].show_results_sensor(sensor_selected)
+    normalized = st.radio("Normalized data ?", ["Yes", "No"], index=1)
+    clusters[cluster].show_results_sensor(sensor_selected, True if normalized == "Yes" else False)

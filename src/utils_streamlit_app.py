@@ -6,6 +6,9 @@ import folium
 import glob
 from pathlib import PurePath
 
+from utils_data import load_PeMS04_flow_data
+from utils_graph import create_graph
+
 
 #  A dictionary to map the options to their aliases
 #  Add here the parameters that you want the user use to filter among all the experiments
@@ -303,3 +306,19 @@ def get_colors_for_results(df_fed, df_local, columns):
 
 def results_to_dataframe(results, sensor_selected, version):
     return pd.DataFrame(results[sensor_selected][version], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
+
+
+def get_name_version_normalized(normalized=True):
+    if normalized:
+        federated_ver = "Federated_normalized"
+        local_only_ver = "local_only_normalized"
+    else:
+        federated_ver = "Federated_unormalized"
+        local_only_ver = "local_only_unormalized"
+    return federated_ver, local_only_ver
+
+
+@st.cache_resource
+def load_graph():
+    _, distance = load_PeMS04_flow_data()
+    return create_graph(distance)

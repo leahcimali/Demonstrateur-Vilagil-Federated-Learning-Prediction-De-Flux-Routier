@@ -4,9 +4,8 @@
 import streamlit as st
 
 
-from sub_pages_general_stats.experiment_general_stats import experiment_general_stats
-from sub_pages_general_stats.WIP_comparison_models import WIP_comparison_models
-from sub_pages_general_stats.OLD_comparison_models import OLD_comparison_models
+from sub_pages_general_stats.experiment_general_stats import one_experiment
+from sub_pages_general_stats.comparison_experiments import comparison_experiments
 from sub_pages_general_stats.map_of_sensors import map_of_sensors
 
 
@@ -18,9 +17,8 @@ st.set_page_config(layout="wide")
 #######################################################################
 PAGES = {
     "Map of sensors": map_of_sensors,
-    "One experiment": experiment_general_stats,
-    "WIP Comparison between models": WIP_comparison_models,
-    "OLD Comparison between models": OLD_comparison_models
+    "One experiment": one_experiment,
+    "Comparison between experiments": comparison_experiments
 }
 
 

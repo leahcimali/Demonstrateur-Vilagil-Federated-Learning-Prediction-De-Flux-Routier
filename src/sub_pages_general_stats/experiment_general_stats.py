@@ -2,10 +2,9 @@
 # Libraries
 ###############################################################################
 import streamlit as st
-import pandas as pd
 
 
-from utils_streamlit_app import selection_of_experiment, style_dataframe, load_experiment_results, results_to_stats_dataframe, get_colors_for_results, get_results_for_key
+from utils_streamlit_app import selection_of_experiment, style_dataframe, load_experiment_results, results_to_stats_dataframe, get_colors_for_results, get_results_for_key, get_name_version_normalized
 
 
 #######################################################################
@@ -27,14 +26,16 @@ def render_results(df_fed, df_local):
 
 def render_experiment(path_experiment_selected):
     results = load_experiment_results(path_experiment_selected)
-
     sensor_index = results.keys()  # e.g. keys = ['0', '1', '2', ...]
-
-    results_sensor_federated = get_results_for_key(results, sensor_index, "Federated")
-    results_sensor_local = get_results_for_key(results, sensor_index, "local_only")
-
     st.subheader(f"A comparison between federated and local version | Average on {len(sensor_index)} sensors")
     st.subheader("_It's a general statistic including all the sensors in the calculation_")
+
+    normalized = st.radio("Normalized data ?", ["Yes", "No"], index=1)
+    federated_ver, local_only_ver = get_name_version_normalized(True if normalized == "Yes" else False)
+
+    results_sensor_federated = get_results_for_key(results, sensor_index, federated_ver)
+    results_sensor_local = get_results_for_key(results, sensor_index, local_only_ver)
+
     if results_sensor_federated and results_sensor_local:
         stats_fed_ver = results_to_stats_dataframe(results_sensor_federated)
         stats_local_ver = results_to_stats_dataframe(results_sensor_local)
@@ -45,7 +46,7 @@ def render_experiment(path_experiment_selected):
 #######################################################################
 # Main
 #######################################################################
-def experiment_general_stats():
+def one_experiment():
     st.subheader("One Experiment")
     st.write("""
         * On this page, select one experiment to see its results.
