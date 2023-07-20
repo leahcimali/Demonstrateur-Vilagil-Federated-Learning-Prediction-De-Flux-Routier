@@ -1,13 +1,6 @@
 import glob
 from pathlib import PurePath
 import streamlit as st
-import sys
-import os
-
-# Resolve the src module error that appear when starting the program like this "streamlit run src/Home.py"
-# The program is designed to be start from the root not from a subdirectory like src/
-# So it needs some handcrafted "solution" to make everything works correctly
-sys.path.append(os.getcwd())
 
 
 from sub_pages_cluster_experiments import One_Cluster, All_Clusters

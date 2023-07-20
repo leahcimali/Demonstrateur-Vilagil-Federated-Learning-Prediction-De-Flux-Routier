@@ -10,9 +10,6 @@ from sub_pages_one_sensor.predictions_graph import prediction_graph_sensor
 from sub_pages_one_sensor.single_sensor_map import single_sensor_map_sensor
 
 
-st.set_page_config(layout="wide")
-
-
 #######################################################################
 # Constant(s)
 #######################################################################

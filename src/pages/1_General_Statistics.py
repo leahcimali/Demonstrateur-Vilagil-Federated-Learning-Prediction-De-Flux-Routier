@@ -9,9 +9,6 @@ from sub_pages_general_stats.comparison_experiments import comparison_experiment
 from sub_pages_general_stats.map_of_sensors import map_of_sensors
 
 
-st.set_page_config(layout="wide")
-
-
 #######################################################################
 # Constant(s)
 #######################################################################
