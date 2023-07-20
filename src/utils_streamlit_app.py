@@ -233,7 +233,7 @@ def get_color_fed_vs_local(fed_value, local_value, superior=True):
     local_value = float(local_value)
     if (superior):
         return (green, red) if ((fed_value) >= (local_value)) else (red, green)
-    return (green, red) if ((fed_value) < (local_value)) else (red, green)
+    return (green, red) if ((fed_value) <= (local_value)) else (red, green)
 
 
 def style_dataframe(df, colors=None, column_index=None):
