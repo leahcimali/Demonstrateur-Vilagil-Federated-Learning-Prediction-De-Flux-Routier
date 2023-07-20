@@ -170,27 +170,21 @@ def render_graph(graph, cluster):
 #######################################################################
 # Main
 #######################################################################
-st.subheader("Visiualization of one cluster")
-st.write("""
-        * Visualization of one cluster
-        """)
-st.divider()
-
-
 def one_cluster(experiments_path):
+    st.subheader("Visiualization of one cluster")
+    st.write("""* Visualization of one cluster""")
     clusters = {}
     for path_exp in experiments_path:
         path_exp_parent = PurePath(path_exp).parent
         cluster = ClusterData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
         clusters[cluster.name] = cluster
-
     cluster = st.selectbox("Select the cluster", list(clusters.keys()))
     st.subheader(f"Nb sensor in the cluster : {clusters[cluster].size}")
 
     with st.spinner('Plotting...'):
         G = load_graph()
         render_graph(G, clusters[cluster])
-
+        st.divider()
         metric = create_selectbox_metrics()
         col1, col2 = st.columns(2)
         with col1:
@@ -198,6 +192,7 @@ def one_cluster(experiments_path):
         with col2:
             sorted_by = st.radio("Sorted_by:", ["Federated", "Local"], index=0)
         render_bar_plot_fed_vs_local(clusters[cluster], metric, sorted_by, descending=descending)
+    st.divider()
 
     def format_selectbox_sensor(value):
         return clusters[cluster].sensors_name[int(value)]

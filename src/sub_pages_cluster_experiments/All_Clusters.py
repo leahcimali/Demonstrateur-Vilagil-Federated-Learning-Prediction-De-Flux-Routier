@@ -451,14 +451,9 @@ def render_bar_plot_comparison_local(clusters, metric, title="Bar plot", descend
 #######################################################################
 # Main
 #######################################################################
-st.subheader("Comparison Clusters")
-st.write("""
-        * TODO
-        """)
-st.divider()
-
-
 def all_clusters(experiments_path):
+    st.subheader("All Clusters")
+    st.write("""* TODO""")
     clusters = []
     for path_exp in experiments_path:
         path_exp_parent = PurePath(path_exp).parent
