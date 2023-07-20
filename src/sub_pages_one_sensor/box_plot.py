@@ -25,10 +25,10 @@ def remove_outliers(data, threshold=1.5):
 
 
 def load_experiment_results(experiment_path, sensor_selected):
-    y_true = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}.npy")
-    y_pred_local = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}.npy")
-    y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}.npy")
-    return y_true, y_pred_local, y_pred_fed
+    y_true_unormalized = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}_unormalized.npy")
+    y_pred_local_unormalized = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}_unormalized.npy")
+    y_pred_fed_unormalized = load_numpy(f"{experiment_path}/y_pred_fed_{sensor_selected}_unormalized.npy")
+    return y_true_unormalized, y_pred_local_unormalized, y_pred_fed_unormalized
 
 
 def text_introduction_map():
@@ -78,12 +78,12 @@ def render_boxplot(ae_fed, ae_local, max_ae, color_fed, color_local, params, sen
 
 
 def plot_box(experiment_path, sensor_selected):
-    text_introduction_map()
-
     params = Params(f'{experiment_path}/config.json')
     index = load_numpy(f"{experiment_path}/index_{sensor_selected}.npy")
-
+    st.markdown(":red[THE SLIDER IS DISABLED FOR THIS VISUALIZATION]")
     st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0, key="MAP_and_Graph", disabled=True)
+
+    text_introduction_map()
 
     y_true, y_pred_local, y_pred_fed = load_experiment_results(experiment_path, sensor_selected)
 

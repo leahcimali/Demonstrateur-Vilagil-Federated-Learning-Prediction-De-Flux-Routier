@@ -1,9 +1,16 @@
 ###############################################################################
 # Libraries
 ###############################################################################
+import sys
+import os
+
+# Resolve the src module error that appear when starting the program like this "streamlit run src/Home.py"
+# The program is designed to be start from the root not from a subdirectory like src/
+# So it needs some handcrafted "solution" to make everything works correctly
+sys.path.append(os.getcwd())
 import streamlit as st
-st.set_page_config(layout="wide")
-c1_logo, _, _, c4_logo = st.columns((1,1,1,1))
+st.set_page_config(layout="wide", menu_items={"Get help": "https://github.com/leahcimali/Federated-Traffic-Flow-Forecasting/tree/main", "About": "Federated Learning"})
+c1_logo, _, _, c4_logo = st.columns((1, 1, 1, 1))
 with c1_logo:
     st.image("data/Bloc_Marque_ronds.jpg", width=200)
 with c4_logo:

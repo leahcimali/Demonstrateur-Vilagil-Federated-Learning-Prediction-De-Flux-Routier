@@ -112,10 +112,10 @@ def plot_map(experiment_path, mapping_sensor_with_nodes):
     add_sensors_to_map(sensors_loc, seattle_map_local)
 
     for sensor in mapping_sensor_with_nodes.keys():
-        y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor]}.npy")
-        y_pred_local = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor]}.npy")
-        y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}.npy")
-        add_metric_on_map(y_true, y_pred_local, y_pred_fed, sensors_loc[sensor], seattle_map_fed, seattle_map_local)
+        y_true_unormalized = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor]}_unormalized.npy")
+        y_pred_local_unormalized = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor]}_unormalized.npy")
+        y_pred_fed_unormalized = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}_unormalized.npy")
+        add_metric_on_map(y_true_unormalized, y_pred_local_unormalized, y_pred_fed_unormalized, sensors_loc[sensor], seattle_map_fed, seattle_map_local)
 
     seattle_map_fed.fit_bounds(seattle_map_fed.get_bounds(), padding=(30, 30))
     seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(30, 30))

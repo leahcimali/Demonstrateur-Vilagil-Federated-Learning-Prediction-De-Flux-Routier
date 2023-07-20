@@ -10,9 +10,6 @@ from sub_pages_one_sensor.predictions_graph import prediction_graph_sensor
 from sub_pages_one_sensor.single_sensor_map import single_sensor_map_sensor
 
 
-st.set_page_config(layout="wide")
-
-
 #######################################################################
 # Constant(s)
 #######################################################################
@@ -72,9 +69,10 @@ if path_experiment_selected is not None:
 
     sensor_selected = st.sidebar.selectbox('Choose the sensor', results.keys(), format_func=format_selectbox_sensor)
 
-    stats_sensor_federated = results_to_dataframe(results, sensor_selected, "Federated")
+    stats_sensor_federated = results_to_dataframe(results, sensor_selected, "Federated_unormalized")
+    stats_sensor_local = results_to_dataframe(results, sensor_selected, "local_only_unormalized")
 
-    stats_sensor_local = results_to_dataframe(results, sensor_selected, "local_only")
+    st.subheader(f"Working on sensor {config['nodes_to_filter'][int(sensor_selected)]}")
 
     render_results(stats_sensor_federated, stats_sensor_local)
 

@@ -17,25 +17,57 @@ class ClusterData:
         self.name = config_cluster["save_model_path"]
         self.size = len(cluster)
 
-    def get_sensor_metric_local_values(self, node, metric):
-        return self.data[node]["local_only"][metric]
+    def get_sensor_metric_unormalized_local_values(self, node, metric):
+        return self.data[node]["local_only_unormalized"][metric]
 
-    def get_sensor_metric_federated_values(self, node, metric):
-        return self.data[node]["Federated"][metric]
+    def get_sensor_metric_unormalized_federated_values(self, node, metric):
+        return self.data[node]["Federated_unormalized"][metric]
+
+    def get_sensor_metric_normalized_local_values(self, node, metric):
+        return self.data[node]["local_only_normalized"][metric]
+
+    def get_sensor_metric_normalized_federated_values(self, node, metric):
+        return self.data[node]["Federated_normalized"][metric]
+
+    def get_sensors_federated_stats(self, metric, normalized=True):
+        if normalized:
+            federated_ver = "Federated_normalized"
+        else:
+            federated_ver = "Federated_unormalized"
+        return pd.DataFrame([
+            self.data[sensor][federated_ver]
+            for sensor in self.indexes
+        ]).describe().T.loc[metric]["mean"].item()
+
+    def get_sensors_local_stats(self, metric, normalized=True):
+        if normalized:
+            local_only_ver = "local_only_normalized"
+        else:
+            local_only_ver = "local_only_unormalized"
+        return pd.DataFrame([
+            self.data[sensor][local_only_ver]
+            for sensor in self.indexes
+        ]).describe()[metric].T.loc[metric]["mean"].item()
 
     def get_nb_sensor_better_in_federation(self, metric):
         nb_sensor = 0
         for sensor in self.indexes:
             if metric == "Superior Pred %":
-                if self.data[sensor]["Federated"][metric] >= self.data[sensor]["local_only"][metric]:
+                if self.data[sensor]["Federated_unormalized"][metric] >= self.data[sensor]["local_only_unormalized"][metric]:
                     nb_sensor += 1
-            elif self.data[sensor]["Federated"][metric] <= self.data[sensor]["local_only"][metric]:
+            elif self.data[sensor]["Federated_unormalized"][metric] <= self.data[sensor]["local_only_unormalized"][metric]:
                 nb_sensor += 1
         return nb_sensor
 
-    def show_results_sensor(self, sensor):
-        df_fed = pd.DataFrame(self.data[sensor]["Federated"], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
-        df_local = pd.DataFrame(self.data[sensor]["local_only"], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
+    def show_results_sensor(self, sensor, normalized=False):
+        if normalized:
+            federated_ver = "Federated_normalized"
+            local_ver = "local_only_normalized"
+        else:
+            federated_ver = "Federated_unormalized"
+            local_ver = "local_only_unormalized"
+        df_fed = pd.DataFrame(self.data[sensor][federated_ver], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
+        df_local = pd.DataFrame(self.data[sensor][local_ver], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
         color_fed = []
         color_local = []
         for i in range(len(METRICS)):
