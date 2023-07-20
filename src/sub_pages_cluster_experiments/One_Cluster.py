@@ -97,15 +97,24 @@ def render_bar_plot_fed_vs_local(cluster, metric, sorted_by: str, descending: st
 
 
 def render_graph(graph, cluster):
-    sensors = cluster.sensors_name
     st.subheader("Network graph")
-    pos = nx.spring_layout(graph, k=0.1, iterations=200, seed=42)
+    st.subheader("The :green[green dot] indicates that the sensors have benefited from the federation while the :red[red dot] indicates any improvements.")
+    full_graph = st.radio("See the full graph", ["Yes", "No"], index=1)
+    full_graph = True if full_graph == "Yes" else False
+    if full_graph:
+        st.subheader("a :blue[blue dot] represents a direct (connected) neighbor of the cluster.")
+
+    sensors = cluster.sensors_name
+    sensor_better_in_federated = cluster.get_sensors_name_better_in_federated("RMSE")
+
+    pos = nx.spring_layout(graph, k=1, iterations=300, seed=42)
+    fig = go.Figure()
     edge_x = []
     edge_y = []
     for edge in graph.edges():
         node_0 = edge[0]
         node_1 = edge[1]
-        if node_0 in sensors and node_1 in sensors:
+        if (node_0 in sensors and node_1 in sensors) or full_graph:
             x0, y0 = pos[node_0]
             x1, y1 = pos[node_1]
             edge_x.extend((x0, x1, None))
@@ -115,53 +124,45 @@ def render_graph(graph, cluster):
         line=dict(width=0.5, color='#888'),
         hoverinfo='none',
         mode='lines')
+    fig.add_trace(edge_trace)
 
-    node_x = []
-    node_y = []
     for node in graph.nodes():
         if node in sensors:
             x, y = pos[node]
-            node_x.append(x)
-            node_y.append(y)
+            node_trace = go.Scatter(
+                x=[x], y=[y],
+                mode='markers',
+                text=int(node),
+                hoverinfo='text',
+                marker=dict(
+                    color="#FF0000" if node not in sensor_better_in_federated else "#00FF00",
+                    size=10,
+                ))
+            fig.add_trace(node_trace)
 
-    node_trace = go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers',
-        hoverinfo='text',
-        marker=dict(
-            showscale=True,
-            colorscale='YlGnBu',
-            reversescale=True,
-            color=[],
-            size=10,
-            colorbar=dict(
-                thickness=15,
-                title='Node Connections',
-                xanchor='left',
-                titleside='right'
-            ),
-            line_width=2))
+        elif full_graph:
+            x, y = pos[node]
+            node_trace = go.Scatter(
+                x=[x], y=[y],
+                mode='markers',
+                text=int(node),
+                hoverinfo='text',
+                marker=dict(
+                    color="#0000FF" if any(node == neighbor for sensor in sensors for neighbor in graph[sensor].keys()) else "black",
+                    size=10,
+                ))
+            fig.add_trace(node_trace)
 
-    node_adjacencies = []
-    node_text = []
-    for adjacencies in graph.adjacency():
-        node_adjacencies.append(len(adjacencies[1]))
-        node_text.append(int(adjacencies[0]))
-
-    node_trace.marker.color = node_adjacencies
-    node_trace.text = node_text
-
-    fig = go.Figure(data=[edge_trace, node_trace],
-                layout=go.Layout(
-                    title='',
-                    titlefont_size=16,
-                    showlegend=False,
-                    hovermode='closest',
-                    margin=dict(b=20, l=5, r=5, t=40),
-                    height=800,
-                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-                    )
+    fig.update_layout(
+        title='',
+        titlefont_size=16,
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=20, l=5, r=5, t=40),
+        height=800,
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+    )
 
     st.plotly_chart(fig, use_container_width=True)
 
@@ -181,10 +182,11 @@ def one_cluster(experiments_path):
     for path_exp in experiments_path:
         path_exp_parent = PurePath(path_exp).parent
         cluster = ClusterData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
-        clusters[cluster.name.split("/")[1]] = cluster
+        clusters[cluster.name] = cluster
 
-    cluster = st.selectbox("Select the cluster", list(clusters))
+    cluster = st.selectbox("Select the cluster", list(clusters.keys()))
     st.subheader(f"Nb sensor in the cluster : {clusters[cluster].size}")
+
     with st.spinner('Plotting...'):
         G = load_graph()
         render_graph(G, clusters[cluster])

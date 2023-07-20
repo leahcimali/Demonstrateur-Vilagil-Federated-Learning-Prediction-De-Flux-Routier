@@ -11,7 +11,7 @@ class ClusterData:
         super(ClusterData, self).__init__()
         self.data = cluster
         self.parameters = config_cluster
-        self.indexes = cluster.keys()
+        self.indexes = list(cluster.keys())
         self.sensors = [config_cluster["nodes_to_filter"][int(index)] for index in cluster.keys()]
         self.sensors_name = config_cluster["nodes_to_filter"]
         self.name = config_cluster["save_model_path"]
@@ -28,6 +28,16 @@ class ClusterData:
 
     def get_sensor_metric_normalized_federated_values(self, node, metric):
         return self.data[node]["Federated_normalized"][metric]
+
+    def get_sensors_name_better_in_federated(self, metric):
+        sensors_name = []
+        for sensor in self.indexes:
+            if metric == "Superior Pred %":
+                if self.data[sensor]["Federated_unormalized"][metric] >= self.data[sensor]["local_only_unormalized"][metric]:
+                    sensors_name.append(self.sensors_name[int(sensor)])
+            elif self.data[sensor]["Federated_unormalized"][metric] <= self.data[sensor]["local_only_unormalized"][metric]:
+                sensors_name.append(self.sensors_name[int(sensor)])
+        return sensors_name
 
     def get_sensors_federated_stats(self, metric, normalized=True):
         if normalized:

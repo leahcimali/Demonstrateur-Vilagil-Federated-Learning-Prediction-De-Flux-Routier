@@ -335,6 +335,7 @@ def render_proportion_sensor_better_in_federated(clusters, metric, title="", des
 
 
 def render_bar_plot_comparison_federated(clusters, metric, title="Bar plot", descending=False):
+    st.subheader("Comparsion between clusters on the :red[Federated version] based on the metric RMSE")
     normalize = st.radio("Normalized data ?", ["Yes", "No"], key="bar_plot_comparison_federated")
     if normalize == "Yes":
         normalized = True
@@ -391,6 +392,7 @@ def render_bar_plot_comparison_federated(clusters, metric, title="Bar plot", des
 
 
 def render_bar_plot_comparison_local(clusters, metric, title="Bar plot", descending=False):
+    st.subheader("Comparsion between clusters on the :red[Local version] based on the metric RMSE")
     normalize = st.radio("Normalized data ?", ["Yes", "No"], key="bar_plot_comparison_local")
     if normalize == "Yes":
         normalized = True
@@ -463,9 +465,9 @@ def all_clusters(experiments_path):
         cluster = ClusterData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
         clusters.append(cluster)
 
-    G = load_graph()
-
+    st.subheader(f"Nb cluster(s): {len(clusters)}")
     with st.spinner('Plotting...'):
+        G = load_graph()
         render_graph_neighborhood(G)
         render_graph_colored_with_cluster(G, clusters)
         render_bar_plot_comparison_federated(clusters, "RMSE", "", descending=False)
