@@ -1,0 +1,616 @@
+{
+  "attributes": {
+    "creator": "Gephi 0.10.1"
+  },
+  "options": {
+    "multi": false,
+    "allowSelfLoops": true,
+    "type": "directed"
+  },
+  "nodes": [
+    {
+      "key": "MWI35.H2",
+      "attributes": {
+        "label": "MWI35.H2",
+        "x": 415.86023,
+        "y": 83.34382,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.F1",
+      "attributes": {
+        "label": "MWJ35.F1",
+        "x": 359.2814,
+        "y": 144.17766,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.Q1",
+      "attributes": {
+        "label": "MWI35.Q1",
+        "x": 497.35205,
+        "y": 233.05246,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.V1",
+      "attributes": {
+        "label": "MWI35.V1",
+        "x": 616.82513,
+        "y": 332.7215,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.T1",
+      "attributes": {
+        "label": "MWJ35.T1",
+        "x": 710.75214,
+        "y": 446.69043,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MwI35.A1",
+      "attributes": {
+        "label": "MwI35.A1",
+        "x": 771.295,
+        "y": 572.0326,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MwI35.B1",
+      "attributes": {
+        "label": "MwI35.B1",
+        "x": 791.0195,
+        "y": 702.7154,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.J1",
+      "attributes": {
+        "label": "MWJ35.J1",
+        "x": 762.4995,
+        "y": 824.3782,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.I1",
+      "attributes": {
+        "label": "MWI35.I1",
+        "x": 685.12476,
+        "y": 917.6178,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWK35.F1",
+      "attributes": {
+        "label": "MWK35.F1",
+        "x": 573.7655,
+        "y": 961.7281,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.L1",
+      "attributes": {
+        "label": "MWJ35.L1",
+        "x": 452.69977,
+        "y": 950.2426,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.M1",
+      "attributes": {
+        "label": "MWJ35.M1",
+        "x": 337.28918,
+        "y": 891.4703,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.N1",
+      "attributes": {
+        "label": "MWJ35.N1",
+        "x": 238.62984,
+        "y": 794.5404,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.P1",
+      "attributes": {
+        "label": "MWJ35.P1",
+        "x": 160.4421,
+        "y": 671.1,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.U1",
+      "attributes": {
+        "label": "MWI35.U1",
+        "x": 101.75206,
+        "y": 529.7307,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.Q1",
+      "attributes": {
+        "label": "MWJ35.Q1",
+        "x": 63.15693,
+        "y": 377.35684,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.J1",
+      "attributes": {
+        "label": "MWI35.J1",
+        "x": 29.319832,
+        "y": 52.47791,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.S1",
+      "attributes": {
+        "label": "MWJ35.S1",
+        "x": 195.24448,
+        "y": 91.9665,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.B1",
+      "attributes": {
+        "label": "MWJ35.B1",
+        "x": -109.679306,
+        "y": -102.064224,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.U2",
+      "attributes": {
+        "label": "MWI35.U2",
+        "x": -402.48267,
+        "y": -293.42047,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.P2",
+      "attributes": {
+        "label": "MWJ35.P2",
+        "x": -545.5226,
+        "y": -349.0696,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.N2",
+      "attributes": {
+        "label": "MWJ35.N2",
+        "x": -671.4003,
+        "y": -420.20013,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.M2",
+      "attributes": {
+        "label": "MWJ35.M2",
+        "x": -772.8101,
+        "y": -508.939,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.L2",
+      "attributes": {
+        "label": "MWJ35.L2",
+        "x": -831.5195,
+        "y": -614.362,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWK35.F2",
+      "attributes": {
+        "label": "MWK35.F2",
+        "x": -830.47144,
+        "y": -724.3628,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.I2",
+      "attributes": {
+        "label": "MWI35.I2",
+        "x": -761.2303,
+        "y": -803.335,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.J2",
+      "attributes": {
+        "label": "MWJ35.J2",
+        "x": -652.3077,
+        "y": -817.2659,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MwI35.B2",
+      "attributes": {
+        "label": "MwI35.B2",
+        "x": -540.83044,
+        "y": -769.9366,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.V2",
+      "attributes": {
+        "label": "MWI35.V2",
+        "x": -441.82745,
+        "y": -677.23456,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.Q2",
+      "attributes": {
+        "label": "MWI35.Q2",
+        "x": -357.6742,
+        "y": -557.52856,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.F2",
+      "attributes": {
+        "label": "MWJ35.F2",
+        "x": -284.24536,
+        "y": -418.16583,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWI35.H1",
+      "attributes": {
+        "label": "MWI35.H1",
+        "x": -223.83362,
+        "y": -473.03897,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    },
+    {
+      "key": "MWJ35.S2",
+      "attributes": {
+        "label": "MWJ35.S2",
+        "x": -249.4046,
+        "y": -255.41505,
+        "size": 10.0,
+        "color": "#000000"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "key": "0",
+      "source": "MWI35.H2",
+      "target": "MWJ35.F1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "1",
+      "source": "MWJ35.F1",
+      "target": "MWI35.Q1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "2",
+      "source": "MWI35.Q1",
+      "target": "MWI35.V1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "3",
+      "source": "MWI35.V1",
+      "target": "MWJ35.T1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "4",
+      "source": "MWJ35.T1",
+      "target": "MwI35.A1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "5",
+      "source": "MwI35.A1",
+      "target": "MwI35.B1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "6",
+      "source": "MwI35.B1",
+      "target": "MWJ35.J1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "7",
+      "source": "MWJ35.J1",
+      "target": "MWI35.I1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "8",
+      "source": "MWI35.I1",
+      "target": "MWK35.F1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "9",
+      "source": "MWK35.F1",
+      "target": "MWJ35.L1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "10",
+      "source": "MWJ35.L1",
+      "target": "MWJ35.M1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "11",
+      "source": "MWJ35.M1",
+      "target": "MWJ35.N1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "12",
+      "source": "MWJ35.N1",
+      "target": "MWJ35.P1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "13",
+      "source": "MWJ35.P1",
+      "target": "MWI35.U1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "14",
+      "source": "MWI35.U1",
+      "target": "MWJ35.Q1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "15",
+      "source": "MWJ35.Q1",
+      "target": "MWI35.J1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "17",
+      "source": "MWI35.J1",
+      "target": "MWJ35.S1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "18",
+      "source": "MWI35.J1",
+      "target": "MWJ35.B1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "19",
+      "source": "MWJ35.S1",
+      "target": "MWJ35.F1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "20",
+      "source": "MWI35.U2",
+      "target": "MWJ35.P2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "21",
+      "source": "MWJ35.P2",
+      "target": "MWJ35.N2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "22",
+      "source": "MWJ35.N2",
+      "target": "MWJ35.M2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "23",
+      "source": "MWJ35.M2",
+      "target": "MWJ35.L2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "24",
+      "source": "MWJ35.L2",
+      "target": "MWK35.F2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "25",
+      "source": "MWK35.F2",
+      "target": "MWI35.I2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "26",
+      "source": "MWI35.I2",
+      "target": "MWJ35.J2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "27",
+      "source": "MWJ35.J2",
+      "target": "MwI35.B2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "28",
+      "source": "MwI35.B2",
+      "target": "MWI35.V2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "29",
+      "source": "MWI35.V2",
+      "target": "MWI35.Q2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "30",
+      "source": "MWI35.Q2",
+      "target": "MWJ35.F2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "31",
+      "source": "MWJ35.F2",
+      "target": "MWI35.H1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "32",
+      "source": "MWJ35.F2",
+      "target": "MWJ35.S2",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "33",
+      "source": "MWJ35.S2",
+      "target": "MWJ35.B1",
+      "attributes": {
+        "weight": 1.0
+      }
+    },
+    {
+      "key": "34",
+      "source": "MWJ35.S2",
+      "target": "MWI35.U2",
+      "attributes": {
+        "weight": 1.0
+      }
+    }
+  ]
+}

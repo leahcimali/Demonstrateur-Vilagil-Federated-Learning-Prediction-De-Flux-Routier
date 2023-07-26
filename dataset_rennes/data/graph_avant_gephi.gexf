@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='utf-8'?>
+<gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd" version="1.2">
+  <meta lastmodifieddate="2023-07-25">
+    <creator>NetworkX 3.1</creator>
+  </meta>
+  <graph defaultedgetype="directed" mode="static" name="">
+    <nodes>
+      <node id="MWI35.H2" label="MWI35.H2" />
+      <node id="MWJ35.F1" label="MWJ35.F1" />
+      <node id="MWI35.Q1" label="MWI35.Q1" />
+      <node id="MWI35.V1" label="MWI35.V1" />
+      <node id="MWJ35.T1" label="MWJ35.T1" />
+      <node id="MwI35.A1" label="MwI35.A1" />
+      <node id="MwI35.B1" label="MwI35.B1" />
+      <node id="MWJ35.J1" label="MWJ35.J1" />
+      <node id="MWI35.I1" label="MWI35.I1" />
+      <node id="MWK35.F1" label="MWK35.F1" />
+      <node id="MWJ35.L1" label="MWJ35.L1" />
+      <node id="MWJ35.M1" label="MWJ35.M1" />
+      <node id="MWJ35.N1" label="MWJ35.N1" />
+      <node id="MWJ35.P1" label="MWJ35.P1" />
+      <node id="MWI35.U1" label="MWI35.U1" />
+      <node id="MWJ35.Q1" label="MWJ35.Q1" />
+      <node id="MWI35.J1" label="MWI35.J1" />
+      <node id="MWJ35.S1" label="MWJ35.S1" />
+      <node id="MWJ35.B1" label="MWJ35.B1" />
+      <node id="MWI35.U2" label="MWI35.U2" />
+      <node id="MWJ35.P2" label="MWJ35.P2" />
+      <node id="MWJ35.N2" label="MWJ35.N2" />
+      <node id="MWJ35.M2" label="MWJ35.M2" />
+      <node id="MWJ35.L2" label="MWJ35.L2" />
+      <node id="MWK35.F2" label="MWK35.F2" />
+      <node id="MWI35.I2" label="MWI35.I2" />
+      <node id="MWJ35.J2" label="MWJ35.J2" />
+      <node id="MwI35.B2" label="MwI35.B2" />
+      <node id="MWI35.V2" label="MWI35.V2" />
+      <node id="MWI35.Q2" label="MWI35.Q2" />
+      <node id="MWJ35.F2" label="MWJ35.F2" />
+      <node id="MWI35.H1" label="MWI35.H1" />
+      <node id="MWJ35.S2" label="MWJ35.S2" />
+    </nodes>
+    <edges>
+      <edge source="MWI35.H2" target="MWJ35.F1" id="0" />
+      <edge source="MWJ35.F1" target="MWI35.Q1" id="1" />
+      <edge source="MWI35.Q1" target="MWI35.V1" id="2" />
+      <edge source="MWI35.V1" target="MWJ35.T1" id="3" />
+      <edge source="MWJ35.T1" target="MwI35.A1" id="4" />
+      <edge source="MwI35.A1" target="MwI35.B1" id="5" />
+      <edge source="MwI35.B1" target="MWJ35.J1" id="6" />
+      <edge source="MWJ35.J1" target="MWI35.I1" id="7" />
+      <edge source="MWI35.I1" target="MWK35.F1" id="8" />
+      <edge source="MWK35.F1" target="MWJ35.L1" id="9" />
+      <edge source="MWJ35.L1" target="MWJ35.M1" id="10" />
+      <edge source="MWJ35.M1" target="MWJ35.N1" id="11" />
+      <edge source="MWJ35.N1" target="MWJ35.P1" id="12" />
+      <edge source="MWJ35.P1" target="MWI35.U1" id="13" />
+      <edge source="MWI35.U1" target="MWJ35.Q1" id="14" />
+      <edge source="MWJ35.Q1" target="MWI35.J1" id="15" />
+      <edge source="MWI35.J1" target="MWJ35.S1" id="16" />
+      <edge source="MWI35.J1" target="MWJ35.B1" id="17" />
+      <edge source="MWJ35.S1" target="MWJ35.F1" id="18" />
+      <edge source="MWI35.U2" target="MWJ35.P2" id="19" />
+      <edge source="MWJ35.P2" target="MWJ35.N2" id="20" />
+      <edge source="MWJ35.N2" target="MWJ35.M2" id="21" />
+      <edge source="MWJ35.M2" target="MWJ35.L2" id="22" />
+      <edge source="MWJ35.L2" target="MWK35.F2" id="23" />
+      <edge source="MWK35.F2" target="MWI35.I2" id="24" />
+      <edge source="MWI35.I2" target="MWJ35.J2" id="25" />
+      <edge source="MWJ35.J2" target="MwI35.B2" id="26" />
+      <edge source="MwI35.B2" target="MWI35.V2" id="27" />
+      <edge source="MWI35.V2" target="MWI35.Q2" id="28" />
+      <edge source="MWI35.Q2" target="MWJ35.F2" id="29" />
+      <edge source="MWJ35.F2" target="MWI35.H1" id="30" />
+      <edge source="MWJ35.F2" target="MWJ35.S2" id="31" />
+      <edge source="MWJ35.S2" target="MWJ35.B1" id="32" />
+      <edge source="MWJ35.S2" target="MWI35.U2" id="33" />
+    </edges>
+  </graph>
+</gexf>
