@@ -57,7 +57,7 @@ class ClusterData:
         return pd.DataFrame([
             self.data[sensor][local_only_ver]
             for sensor in self.indexes
-        ]).describe()[metric].T.loc[metric]["mean"].item()
+        ]).describe().T.loc[metric]["mean"].item()
 
     def get_nb_sensor_better_in_federation(self, metric):
         nb_sensor = 0

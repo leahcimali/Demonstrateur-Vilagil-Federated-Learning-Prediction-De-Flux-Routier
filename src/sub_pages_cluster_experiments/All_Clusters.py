@@ -399,7 +399,7 @@ def render_bar_plot_comparison_local(clusters, metric, title="Bar plot", descend
     else:
         normalized = False
     clusters_name = [str(cluster.sensors_name) for cluster in clusters]
-    clusters_mean_metric = [cluster.get_sensors_federated_stats(metric, normalized=normalized) for cluster in clusters]
+    clusters_mean_metric = [cluster.get_sensors_local_stats(metric, normalized=normalized) for cluster in clusters]
     num_clusters = len(clusters_name)
     couleurs = {}
     for i in range(num_clusters):
@@ -448,6 +448,62 @@ def render_bar_plot_comparison_local(clusters, metric, title="Bar plot", descend
     st.plotly_chart(fig, use_container_width=True)
 
 
+def render_bar_plot_proportion_sensor_better_in_federated_no_mean(clusters, metric, title="", descending=False):
+    st.subheader("Compare clusters based on their proportion of sensors that have better results with the federated version compared to the local version")
+    clusters_name = [str(cluster.sensors_name) for cluster in clusters]
+    num_clusters = len(clusters_name)
+    couleurs = {}
+    for i in range(num_clusters):
+        proportion = i / num_clusters
+        angle = proportion * 2 * math.pi
+        r = math.floor(math.sin(angle) * 127) + 128
+        g = math.floor(math.sin(angle + 2 * math.pi / 3) * 127) + 128
+        b = math.floor(math.sin(angle + 4 * math.pi / 3) * 127) + 128
+        couleur = (f"rgb({r}, {g}, {b})")
+        cluster_name = clusters_name[i]
+        couleurs[cluster_name] = couleur
+
+    clusters_proportion_better_in_federation = []
+    for cluster in clusters:
+        clusters_proportion_better_in_federation.append((cluster.get_nb_sensor_better_in_federation(metric) / cluster.size) * 100)
+
+    sorted_percent_sensor_improve = sorted(clusters_proportion_better_in_federation, reverse=descending)
+    sorted_name = [value for _, value in sorted(zip(clusters_proportion_better_in_federation, clusters_name))]
+
+    max_y_value = max(sorted_percent_sensor_improve)
+
+    fig = go.Figure()
+    for (x, y) in zip(sorted_name, sorted_percent_sensor_improve):
+        y = round(y, 2)
+        bar_trace = go.Bar(
+            x=[x],
+            y=[y],
+            marker_color=couleurs[x],
+            text=f'{y}%',
+            name=f'Name: {x}',
+        )
+        fig.add_trace(bar_trace)
+
+    fig.update_xaxes(title='Size of a cluster',
+                    dtick=1)
+
+    fig.update_yaxes(
+        title='% of sensors with better results',
+        range=[-2, max_y_value + 2],
+        dtick=5
+    )
+
+    fig.update_layout(
+        title=f'{title}',
+        showlegend=True,
+        height=800,
+        margin=dict(l=0, r=0, t=0, b=0),
+        xaxis_tickangle=45,
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
 #######################################################################
 # Main
 #######################################################################
@@ -467,5 +523,6 @@ def all_clusters(experiments_path):
         render_graph_colored_with_cluster(G, clusters)
         render_bar_plot_comparison_federated(clusters, "RMSE", "", descending=False)
         render_bar_plot_comparison_local(clusters, "RMSE", "", descending=False)
+        render_bar_plot_proportion_sensor_better_in_federated_no_mean(clusters, "RMSE", "")
         render_proportion_sensor_better_in_federated(clusters, "RMSE")
         render_proportion_sensor_better_in_federated_no_mean(clusters, "RMSE")
