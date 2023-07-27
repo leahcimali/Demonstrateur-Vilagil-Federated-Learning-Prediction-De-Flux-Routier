@@ -47,14 +47,15 @@ def normalize_data(df_PeMS):
     df_PeMS = df_PeMS /  maximum
     return df_PeMS
 
+
 def center_reduce(df):
-    
+
     """
     Center and reduce the data to put it between -1 and 1 with mean 0 and std 1
-    
+
     Parameters:
     -----------
-    df : pd.DataFrame 
+    df : pd.DataFrame
         data to center and reduce
 
     Returns
@@ -64,14 +65,14 @@ def center_reduce(df):
     meanstd_dict : dictionary
         Dictionary containing the mean and std of all columns to unormalize data
     """
-   
-    meanstd_dict={}
+
+    meanstd_dict = {}
     for column in df.columns:
         colmean = df[column].mean()
         colstd = df[column].std()
-        meanstd_dict[column] = {'mean':colmean,'std':colstd}
-    
-    normalized_df=(df-df.mean())/df.std()
+        meanstd_dict[column] = {'mean': colmean, 'std': colstd}
+
+    normalized_df = (df - df.mean()) / df.std()
 
     return normalized_df, meanstd_dict
 
@@ -285,6 +286,49 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
     return df_PeMS, df_distance
 
 
+def load_Rennes_flow_data(input_path: Path = "./data/Rennes/"):
+    import pandas as pd
+    import numpy as np
+
+    """
+
+    Function to load traffic flow data from 'npz' and 'csv' files associated with PeMS
+
+    Parameters
+    ----------
+    input_path: Path
+        Path to the input directory
+
+    Returns
+    -------
+    df_PeMS : pd.Dataframe
+        With the flow between two sensors
+
+    df_distance:
+        Dataframe with the distance metrics between sensors
+
+    """
+
+    flow_file = f'{input_path}dataset_Rennes.npz'
+    # csv_file = f'{input_path}distance.csv'
+
+    # the flow data is stored in 'data' third dimension
+    df_flow = np.load(flow_file)["data"]
+    # df_distance = pd.read_csv(csv_file)
+
+    dict_flow = {k: df_flow[:, k] for k in range(df_flow.shape[1])}
+
+    df_rennes = pd.DataFrame(dict_flow)
+
+    start_date = "2017-01-01T00:00:00+00:00"
+    end_date = "2023-07-17T00:00:00+00:00"
+    interval = "5min"
+    index = pd.date_range(start=start_date, end=end_date, freq=interval)
+    df_rennes = df_rennes.set_index(index)
+
+    return df_rennes
+
+
 def local_dataset(df, nodes=[], perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, prediction_horizon=1, batch_size=32):
     """
     Create datasets and data loaders for training, validation, and test sets
@@ -397,6 +441,80 @@ def preprocess_PeMS_data(df_PeMS, time_serie_percentage_length, df_distance, ini
         df_PeMS = normalize_data(df_PeMS)
         
     return df_PeMS, adjacency_matrix
+
+
+def preprocess_rennes_data(df_Rennes, time_serie_percentage_length, df_distance=None, init_node: int = 0, n_neighbors: int = 33,
+                        smooth=True, center_and_reduce=True, normalize=False, sort_by_mean=False):
+    """
+    Filter to n nearest neightbors from 'init_node', sort by mean traffic flow, and normalize and smooth data
+
+    Parameters
+    ----------
+    time_serie_percentage_length: float
+        Percentage of the time series we want to keep for training
+
+
+    df_distance: pandas.DataFrame
+        Dataframe with the distance between nodes
+
+    init_node : int
+        Index of the node we want to start with
+
+    n_neighbors: int
+        Number of nearest neighbors to consider
+
+    smooth: boolean
+        Flag for smoothing the time series
+
+    center_and_reduce: boolean
+        Flag for centering and reducing the data
+
+    normalize: boolean
+        Flag for normalizing the data
+
+    sort_by_mean: boolean
+        Flag for sorting the data by mean
+
+    Returns
+    ----------
+    df_Rennes :
+        PeMS that have been preprocessed
+
+    adjacency_matrix : array
+        the adjacency matrix of PeMS
+
+    meanstd_dict : dictionary
+        Dictionary containing the mean and std of the prenormalize DataFrame
+    """
+
+    df_Rennes = df_Rennes[:int(len(df_Rennes)* time_serie_percentage_length)]
+
+    # Filter nodes to retain only n nearest neighbors
+    # graph = create_graph(df_distance)
+    # if n_neighbors :
+    #     graph = subgraph_dijkstra(graph, init_node, n_neighbors)
+    #     df_Rennes = df_Rennes[list(graph.nodes)]
+
+    # Sort data by mean traffic flow
+    if sort_by_mean:
+        df_sorted = df_Rennes.mean().sort_values()
+        index_mean_flow = df_sorted.index
+        column_order = list(index_mean_flow)
+        df_Rennes = df_Rennes.reindex(columns=column_order)
+
+    # adjacency_matrix = compute_adjacency_matrix(graph,list(df_Rennes.columns))
+
+    if smooth:
+        df_Rennes = exp_smooth(df_Rennes)
+
+    if center_and_reduce:
+        df_Rennes, meanstd_dict = center_reduce(df_Rennes)
+        return df_Rennes, meanstd_dict
+    elif normalize:
+        df_Rennes = normalize_data(df_Rennes)
+
+    return df_Rennes
+
 
 def plot_prediction(y_true, y_pred, test_data,meanstd_dict, window_size, time_point_t=0,  node = 0, plot_fig_name = 'plot.jpg'):
 
