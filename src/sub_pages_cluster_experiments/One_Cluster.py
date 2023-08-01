@@ -5,6 +5,7 @@ from pathlib import PurePath
 import streamlit as st
 import plotly.graph_objects as go
 import networkx as nx
+import numpy as np
 
 from ClusterData import ClusterData
 from utils_streamlit_app import load_experiment_results, load_experiment_config, create_selectbox_metrics, load_graph
@@ -35,9 +36,11 @@ def render_bar_plot_fed_vs_local(cluster, metric, sorted_by: str, descending: st
     max_value = max(sorted_value_metric_federated, sorted_value_metric_local)
 
     fig = go.Figure()
+    fed_diff_local = []
     for (sensor, federated_value, local_value) in zip(sorted_sensor_name, sorted_value_metric_federated, sorted_value_metric_local):
         federated_value = round(federated_value, 2)
         local_value = round(local_value, 2)
+        fed_diff_local.append(federated_value - local_value)
         bar_trace_federated = go.Bar(
             x=[f"sensor: {sensor}"],
             y=[federated_value],
@@ -88,6 +91,20 @@ def render_bar_plot_fed_vs_local(cluster, metric, sorted_by: str, descending: st
         yref="paper",
         xanchor="left",
         yanchor="top",
+        bordercolor="red",
+        borderwidth=3,
+        bgcolor="white",
+    )
+
+    fig.add_annotation(
+        x=0,
+        y=0.94,
+        text=f"On average, the federated version increases the value of: {round(np.mean(np.array(fed_diff_local)), 2)}",
+        font=dict(size=18, color="black"),
+        showarrow=False,
+        xref="paper",
+        yref="paper",
+        xanchor="left",
         bordercolor="red",
         borderwidth=3,
         bgcolor="white",

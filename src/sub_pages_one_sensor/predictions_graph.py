@@ -179,7 +179,7 @@ def graph_prediction(experiment_path, index, config, sensor_selected, i):
     rmse_fed = rmse(y_true[i, :].flatten(), y_pred_fed[i, :].flatten())
     rmse_local = rmse(y_true[i, :].flatten(), y_pred_local[i, :].flatten())
 
-    color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
+    color_fed, color_local = ("#00dd00", "#fe4269")
 
     df = create_dataframe(index, test_set, config, y_pred_fed[i, :], y_pred_local[i, :], i)
 
