@@ -7,8 +7,10 @@ METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
 
 
 class ClusterData:
-    def __init__(self, cluster, config_cluster):
+    def __init__(self, cluster, config_cluster, path_to_exp=None):
         super(ClusterData, self).__init__()
+        if path_to_exp != None:
+            self.path_to_exp = path_to_exp
         self.data = cluster
         self.parameters = config_cluster
         self.indexes = list(cluster.keys())
