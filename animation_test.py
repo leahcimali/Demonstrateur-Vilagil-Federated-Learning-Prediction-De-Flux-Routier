@@ -16,6 +16,8 @@ import plotly.graph_objects as go
 import numpy as np
 import networkx as nx
 import pandas as pd
+import pyqtgraph as pg
+
 
 from src.ClusterData import ClusterData
 from src.utils_data import load_PeMS04_flow_data
@@ -144,14 +146,15 @@ def graph_prediction(experiment_path, index, config, sensor_selected, i=0):
 
     df = create_dataframe(index, test_set, config, y_pred_fed[i, :], y_pred_local[i, :], i)
 
-    fig = create_fig(df, color_fed, color_local, rmse_fed, rmse_local)
+    fig = pg.PlotWidget()  # create_fig(df, color_fed, color_local, rmse_fed, rmse_local)
+    fig.plot(df["Time"], df["y_pred_federation"], pen=pg.mkPen(color='b', width=2), symbol='o', symbolPen='r', symbolBrush='g')
 
-    min_yaxis = min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten()))))
-    max_yaxis = max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))
-    update_axis(fig, [index[i + config["window_size"]], index[i + config["window_size"] + config["prediction_horizon"]]],
-                [min_yaxis, max_yaxis])
+    # min_yaxis = min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten()))))
+    # max_yaxis = max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))
+    # update_axis(fig, [index[i + config["window_size"]], index[i + config["window_size"] + config["prediction_horizon"]]],
+    #             [min_yaxis, max_yaxis])
 
-    update_layout_fig(fig)
+    # update_layout_fig(fig)
     return fig
 
 
@@ -207,12 +210,12 @@ class MainWindow(QMainWindow):
         self.map_sensor_graph = {}
         self.map_sensor_webview = {}
         for sensor in ['0', '1', '2']:
-            self.map_sensor_webview[sensor] = QWebEngineView()
+            # self.map_sensor_webview[sensor] = QWebEngineView()
             self.map_sensor_graph[sensor] = graph_prediction(cluster.path_to_exp, self.index, cluster.parameters, sensor, 0)
-            self.map_sensor_webview[sensor].setHtml(self.map_sensor_graph[sensor].to_html(include_plotlyjs='cdn'))
-            self.map_sensor_webview[sensor].setContentsMargins(0, 0, 0, 0)
-            self.map_sensor_webview[sensor].setFixedSize(800, 600)
-            widget_in_scene = self.plot_scene.addWidget(self.map_sensor_webview[sensor])
+            # self.map_sensor_webview[sensor].setHtml(self.map_sensor_graph[sensor].to_html(include_plotlyjs='cdn'))
+            # self.map_sensor_webview[sensor].setContentsMargins(0, 0, 0, 0)
+            # self.map_sensor_webview[sensor].setFixedSize(800, 600)
+            widget_in_scene = self.plot_scene.addWidget(self.map_sensor_graph[sensor])
             widget_in_scene.setPos(805 * int(sensor), 0)
 
         # Add the QGraphicsScene to the QGraphicsView
@@ -247,15 +250,8 @@ class MainWindow(QMainWindow):
         for sensor in ['0', '1', '2']:
             y_true, y_pred_local, y_pred_fed, test_set = load_experiment_results_sensor(self.cluster.path_to_exp, sensor)
             df = create_dataframe(self.index, test_set, self.cluster.parameters, y_pred_fed[value, :], y_pred_local[value, :], value)
-            self.map_sensor_graph[sensor].update_traces(x=df["Time"], y=df["y_pred_federation"])
-            min_yaxis = min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten()))))
-            max_yaxis = max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))
-            update_axis(self.map_sensor_graph[sensor], [self.index[value + self.cluster.parameters["window_size"]], self.index[value + self.cluster.parameters["window_size"] + self.cluster.parameters["prediction_horizon"]]],
-                [min_yaxis, max_yaxis])
-            self.map_sensor_webview[sensor].setHtml(self.map_sensor_graph[sensor].to_html(include_plotlyjs='cdn'))
-            #self.map_sensor_webview[sensor].reload()
-            widget_in_scene = self.plot_scene.addWidget(self.map_sensor_webview[sensor])
-            widget_in_scene.setPos(805 * int(sensor), 0)
+            self.map_sensor_graph[sensor].clear()
+            self.map_sensor_graph[sensor].plot(df["Time"], df["y_pred_federation"], pen='r')
 
     def toggle_slider(self):
         if self.slider_timer is None:
