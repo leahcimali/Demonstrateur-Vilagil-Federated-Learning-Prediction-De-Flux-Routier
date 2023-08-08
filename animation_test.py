@@ -149,12 +149,12 @@ def graph_prediction(experiment_path, index, config, sensor_selected, i=0):
     fig = pg.PlotWidget()  # create_fig(df, color_fed, color_local, rmse_fed, rmse_local)
     fig.plot(df["Time"], df["y_pred_federation"], pen=pg.mkPen(color='b', width=2), symbol='o', symbolPen='r', symbolBrush='g')
 
-    # min_yaxis = min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten()))))
-    # max_yaxis = max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))
-    # update_axis(fig, [index[i + config["window_size"]], index[i + config["window_size"] + config["prediction_horizon"]]],
-    #             [min_yaxis, max_yaxis])
+    min_yaxis = min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten()))))
+    max_yaxis = max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))
+    fig.setXRange(index[i + config["window_size"]], index[i + config["window_size"] + config["prediction_horizon"]])
+    fig.setYRange(min_yaxis, max_yaxis)
 
-    # update_layout_fig(fig)
+    update_layout_fig(fig)
     return fig
 
 
