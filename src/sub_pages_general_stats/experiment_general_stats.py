@@ -53,7 +53,7 @@ def render_experiment(path_experiment_selected):
             else:
                 avg_rate_change[metric] = avg_rate_change[metric] * (1 + ((results_sensor_federated[i][metric] - results_sensor_local[i][metric]) / results_sensor_local[i][metric]))
     for metric in metrics:
-        avg_rate_change[metric] = (np.power(avg_rate_change[metric], (1/len(results_sensor_federated))) - 1) * 100
+        avg_rate_change[metric] = (np.power(avg_rate_change[metric], (1 / len(results_sensor_federated))) - 1) * 100
     if results_sensor_federated and results_sensor_local:
         stats_fed_ver = results_to_stats_dataframe(results_sensor_federated)
         stats_local_ver = results_to_stats_dataframe(results_sensor_local)
@@ -68,11 +68,11 @@ def render_experiment(path_experiment_selected):
     st.subheader("Difference between federated and local value on the mean")
     df_mean_diff = df_mean_diff.diff(axis=1)
     df_mean_diff.drop("local", axis=1, inplace=True)
-    df_mean_diff = df_mean_diff.applymap(lambda x: '{:.2f}'.format(x))
+    df_mean_diff = df_mean_diff.applymap(lambda x: '{:.4f}'.format(x))
     st.table(df_mean_diff.style.set_table_styles(style_dataframe(df_mean_diff, colors="#000000", column_index=2)))
 
     avg_rate_change = pd.DataFrame.from_dict(avg_rate_change, orient="index", columns=["Average rate of change"])
-    avg_rate_change = avg_rate_change.applymap(lambda x: '{:.2f} %'.format(x))
+    avg_rate_change = avg_rate_change.applymap(lambda x: '{:.4f} %'.format(x))
     st.table(avg_rate_change.style.set_table_styles(style_dataframe(avg_rate_change, colors="#000000", column_index=2)))
 
 #######################################################################

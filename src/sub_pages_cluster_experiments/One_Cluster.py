@@ -42,8 +42,8 @@ def render_bar_plot_fed_vs_local(cluster, metric, normalized: bool, sorted_by: s
     fig = go.Figure()
     avg_rate_change = 1
     for (sensor, federated_value, local_value) in zip(sorted_sensor_name, sorted_value_metric_federated, sorted_value_metric_local):
-        federated_value = round(federated_value, 2)
-        local_value = round(local_value, 2)
+        federated_value = round(federated_value, 4)
+        local_value = round(local_value, 4)
         avg_rate_change = avg_rate_change * (1 + ((federated_value - local_value) / local_value))
         bar_trace_federated = go.Bar(
             x=[f"sensor: {sensor}"],
@@ -88,7 +88,7 @@ def render_bar_plot_fed_vs_local(cluster, metric, normalized: bool, sorted_by: s
     fig.add_annotation(
         x=0,
         y=1,
-        text=f"{round(nb_sensors / cluster.size * 100, 2)}% ({nb_sensors}/{cluster.size}) sensors have better results with the federated approach",
+        text=f"{round(nb_sensors / cluster.size * 100, 4)}% ({nb_sensors}/{cluster.size}) sensors have better results with the federated approach",
         font=dict(size=18, color="black"),
         showarrow=False,
         xref="paper",
@@ -103,7 +103,7 @@ def render_bar_plot_fed_vs_local(cluster, metric, normalized: bool, sorted_by: s
     fig.add_annotation(
         x=0,
         y=0.94,
-        text=f"The average rate of change with the federated version is : {round(np.mean(np.array(avg_rate_change)), 2)}%",
+        text=f"The average rate of change with the federated version is : {round(np.mean(np.array(avg_rate_change)), 4)}%",
         font=dict(size=18, color="black"),
         showarrow=False,
         xref="paper",

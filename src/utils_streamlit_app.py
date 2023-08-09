@@ -279,7 +279,7 @@ def results_to_stats_dataframe(results):
     df = pd.DataFrame(results, columns=METRICS)
     df = df.describe().T
     df.drop(columns={'count'}, inplace=True)
-    df = df.applymap(lambda x: '{:.2f}'.format(x))
+    df = df.applymap(lambda x: '{:.4f}'.format(x))
     return df
 
 
@@ -305,7 +305,7 @@ def get_colors_for_results(df_fed, df_local, columns):
 
 
 def results_to_dataframe(results, sensor_selected, version):
-    return pd.DataFrame(results[sensor_selected][version], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
+    return pd.DataFrame(results[sensor_selected][version], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.4f}'.format(x))
 
 
 def get_name_version_normalized(normalized=True):

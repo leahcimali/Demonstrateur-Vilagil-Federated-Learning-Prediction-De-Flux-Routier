@@ -78,8 +78,10 @@ class ClusterData:
         else:
             federated_ver = "Federated_unormalized"
             local_ver = "local_only_unormalized"
-        df_fed = pd.DataFrame(self.data[sensor][federated_ver], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
-        df_local = pd.DataFrame(self.data[sensor][local_ver], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
+        df_fed = pd.DataFrame(self.data[sensor][federated_ver], columns=METRICS, index=["Value"]).T
+        df_fed = df_fed.applymap(lambda x: '{:.4f}'.format(x))
+        df_local = pd.DataFrame(self.data[sensor][local_ver], columns=METRICS, index=["Value"]).T
+        df_local = df_local.applymap(lambda x: '{:.4f}'.format(x))
         color_fed = []
         color_local = []
         for i in range(len(METRICS)):
