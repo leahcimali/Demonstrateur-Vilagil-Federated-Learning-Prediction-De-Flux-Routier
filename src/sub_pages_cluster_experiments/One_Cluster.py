@@ -14,14 +14,18 @@ from utils_streamlit_app import load_experiment_results, load_experiment_config,
 #######################################################################
 # Function(s)
 #######################################################################
-def render_bar_plot_fed_vs_local(cluster, metric, sorted_by: str, descending: str):
+def render_bar_plot_fed_vs_local(cluster, metric, normalized: bool, sorted_by: str, descending: str):
     st.subheader(f"Comparison between the federated version and local version with the {metric} metric on each sensors")
 
     value_metric_federated = []
     value_metric_local = []
     for sensor in cluster.indexes:
-        value_metric_local.append(cluster.get_sensor_metric_unormalized_local_values(sensor, metric))
-        value_metric_federated.append(cluster.get_sensor_metric_unormalized_federated_values(sensor, metric))
+        if normalized:
+            value_metric_local.append(cluster.get_sensor_metric_normalized_local_values(sensor, metric))
+            value_metric_federated.append(cluster.get_sensor_metric_normalized_federated_values(sensor, metric))
+        else:
+            value_metric_local.append(cluster.get_sensor_metric_unormalized_local_values(sensor, metric))
+            value_metric_federated.append(cluster.get_sensor_metric_unormalized_federated_values(sensor, metric))
 
     descending = descending == "Descending"
     if sorted_by == "Federated":
@@ -36,11 +40,11 @@ def render_bar_plot_fed_vs_local(cluster, metric, sorted_by: str, descending: st
     max_value = max(sorted_value_metric_federated, sorted_value_metric_local)
 
     fig = go.Figure()
-    fed_diff_local = []
+    avg_rate_change = 1
     for (sensor, federated_value, local_value) in zip(sorted_sensor_name, sorted_value_metric_federated, sorted_value_metric_local):
         federated_value = round(federated_value, 2)
         local_value = round(local_value, 2)
-        fed_diff_local.append(federated_value - local_value)
+        avg_rate_change = avg_rate_change * (1 + ((federated_value - local_value) / local_value))
         bar_trace_federated = go.Bar(
             x=[f"sensor: {sensor}"],
             y=[federated_value],
@@ -95,11 +99,11 @@ def render_bar_plot_fed_vs_local(cluster, metric, sorted_by: str, descending: st
         borderwidth=3,
         bgcolor="white",
     )
-
+    avg_rate_change = (np.power(avg_rate_change, (1 / len(sorted_sensor_name))) - 1) * 100
     fig.add_annotation(
         x=0,
         y=0.94,
-        text=f"On average, the federated version increases the value of: {round(np.mean(np.array(fed_diff_local)), 2)}",
+        text=f"The average rate of change with the federated version is : {round(np.mean(np.array(avg_rate_change)), 2)}%",
         font=dict(size=18, color="black"),
         showarrow=False,
         xref="paper",
@@ -204,16 +208,16 @@ def one_cluster(experiments_path):
         st.divider()
         metric = create_selectbox_metrics()
         col1, col2 = st.columns(2)
+        normalized = st.radio("Normalized data ?", ["Yes", "No"], index=1)
         with col1:
             descending = st.radio("Sorted:", ["Descending", "Ascending"], index=1)
         with col2:
             sorted_by = st.radio("Sorted_by:", ["Federated", "Local"], index=0)
-        render_bar_plot_fed_vs_local(clusters[cluster], metric, sorted_by, descending=descending)
+        render_bar_plot_fed_vs_local(clusters[cluster], metric, normalized == "Yes", sorted_by, descending=descending)
     st.divider()
 
     def format_selectbox_sensor(value):
         return clusters[cluster].sensors_name[int(value)]
 
     sensor_selected = st.selectbox('Choose the sensor', clusters[cluster].indexes, format_func=format_selectbox_sensor)
-    normalized = st.radio("Normalized data ?", ["Yes", "No"], index=1)
-    clusters[cluster].show_results_sensor(sensor_selected, True if normalized == "Yes" else False)
+    clusters[cluster].show_results_sensor(sensor_selected, normalized == "Yes")
