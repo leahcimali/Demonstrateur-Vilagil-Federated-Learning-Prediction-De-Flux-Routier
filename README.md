@@ -10,7 +10,7 @@ Applications of Federated Learning to urban mobility data.
 https://www.banquedesterritoires.fr/sites/default/files/2020-11/Toulouse%2C%20Vilagil%20%28Occitanie%29.pdf
 
 To install torch version, torchvision and torchaudio use this line :   
-torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+ `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`
 
 To run the visualizations : `streamlit.exe run ./src/Home.py`   
 To see the steps to run experiments and visualizations see the docs/how_to_visualize_results.md   
