@@ -10,21 +10,12 @@ from annotated_text import annotated_text
 
 from metrics import rmse
 from utils_streamlit_app import load_numpy
-from utils_streamlit_app import get_color_fed_vs_local, load_experiment_config
+from utils_streamlit_app import load_experiment_config
 
 
 #######################################################################
 # Function(s)
 #######################################################################
-def text_introduction():
-    annotated_text(
-        "A lower RMSE value indicates a better prediction. The ",
-        ("green", "", "#75ff5b"), " prediction",
-        " is better than the ",
-        ("red", "", "#fe7597"), " one because it has a lower RMSE value")
-    st.divider()
-
-
 def load_experiment_results(experiment_path, sensor_selected):
     y_true_unormalized = load_numpy(f"{experiment_path}/y_true_local_{sensor_selected}_unormalized.npy")
     y_pred_local_unormalized = load_numpy(f"{experiment_path}/y_pred_local_{sensor_selected}_unormalized.npy")
@@ -41,7 +32,7 @@ def add_y_true(fig, df):
         x=df['Time'],
         y=df['y_true'],
         mode='lines',
-        marker=dict(color='blue'),
+        marker=dict(color='black'),
         name='y_true'
     )
 
@@ -114,9 +105,14 @@ def update_xaxis_range(fig, range_xaxis):
 
 
 def create_fig(df, color_fed, color_local, rmse_fed, rmse_local):
-    fig = px.line(
-        df, x='Time', y=["Window"], color_discrete_sequence=['black']
-    )
+    fig = px.line()
+    fig.add_scatter(
+        x=df['Time'],
+        y=df["Window"],
+        mode='lines',
+        marker=dict(color='black'),
+        name='y_true',
+        showlegend=False)
     add_y_true(fig, df)
 
     add_y_pred_federation(fig, df, color_fed, rmse_fed)
@@ -179,7 +175,7 @@ def graph_prediction(experiment_path, index, config, sensor_selected, i):
     rmse_fed = rmse(y_true[i, :].flatten(), y_pred_fed[i, :].flatten())
     rmse_local = rmse(y_true[i, :].flatten(), y_pred_local[i, :].flatten())
 
-    color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
+    color_fed, color_local = ("#00dd00", "#fe4269")
 
     df = create_dataframe(index, test_set, config, y_pred_fed[i, :], y_pred_local[i, :], i)
 
@@ -198,8 +194,6 @@ def graph_prediction(experiment_path, index, config, sensor_selected, i):
     # Render
 #######################################################################
 def render_prediction_graph(experiment_path, sensor_selected):
-    text_introduction()
-
     config = load_experiment_config(experiment_path)
 
     index = load_numpy(f"{experiment_path}/index_{sensor_selected}.npy")

@@ -7,11 +7,13 @@ METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
 
 
 class ClusterData:
-    def __init__(self, cluster, config_cluster):
+    def __init__(self, cluster, config_cluster, path_to_exp=None):
         super(ClusterData, self).__init__()
+        if path_to_exp != None:
+            self.path_to_exp = path_to_exp
         self.data = cluster
         self.parameters = config_cluster
-        self.indexes = cluster.keys()
+        self.indexes = list(cluster.keys())
         self.sensors = [config_cluster["nodes_to_filter"][int(index)] for index in cluster.keys()]
         self.sensors_name = config_cluster["nodes_to_filter"]
         self.name = config_cluster["save_model_path"]
@@ -28,6 +30,16 @@ class ClusterData:
 
     def get_sensor_metric_normalized_federated_values(self, node, metric):
         return self.data[node]["Federated_normalized"][metric]
+
+    def get_sensors_name_better_in_federated(self, metric):
+        sensors_name = []
+        for sensor in self.indexes:
+            if metric == "Superior Pred %":
+                if self.data[sensor]["Federated_unormalized"][metric] >= self.data[sensor]["local_only_unormalized"][metric]:
+                    sensors_name.append(self.sensors_name[int(sensor)])
+            elif self.data[sensor]["Federated_unormalized"][metric] <= self.data[sensor]["local_only_unormalized"][metric]:
+                sensors_name.append(self.sensors_name[int(sensor)])
+        return sensors_name
 
     def get_sensors_federated_stats(self, metric, normalized=True):
         if normalized:
@@ -47,7 +59,7 @@ class ClusterData:
         return pd.DataFrame([
             self.data[sensor][local_only_ver]
             for sensor in self.indexes
-        ]).describe()[metric].T.loc[metric]["mean"].item()
+        ]).describe().T.loc[metric]["mean"].item()
 
     def get_nb_sensor_better_in_federation(self, metric):
         nb_sensor = 0
@@ -66,8 +78,10 @@ class ClusterData:
         else:
             federated_ver = "Federated_unormalized"
             local_ver = "local_only_unormalized"
-        df_fed = pd.DataFrame(self.data[sensor][federated_ver], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
-        df_local = pd.DataFrame(self.data[sensor][local_ver], columns=METRICS, index=["Value"]).T.applymap(lambda x: '{:.2f}'.format(x))
+        df_fed = pd.DataFrame(self.data[sensor][federated_ver], columns=METRICS, index=["Value"]).T
+        df_fed = df_fed.applymap(lambda x: '{:.4f}'.format(x))
+        df_local = pd.DataFrame(self.data[sensor][local_ver], columns=METRICS, index=["Value"]).T
+        df_local = df_local.applymap(lambda x: '{:.4f}'.format(x))
         color_fed = []
         color_local = []
         for i in range(len(METRICS)):

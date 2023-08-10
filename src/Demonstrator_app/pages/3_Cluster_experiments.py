@@ -20,7 +20,6 @@ PAGES = {
 # Main
 #######################################################################
 st.header("Cluster experiments")
-st.divider()
 st.markdown("""
             On the sidebar, you can see different visualizations.
             """)
@@ -35,6 +34,7 @@ if experiments_path := glob.glob(f"./{selection_of_experiment_cluster()}/**/conf
             index=0
         )
     ClusterData(load_experiment_results(PurePath(experiments_path[0]).parent), load_experiment_config(PurePath(experiments_path[0]).parent)).show_parameters()
+    st.divider()
     PAGES[page_selectioned](experiments_path)
 else:
     st.header(":red[You don't have experiments to see. (check docs/how_to_visualize_results.md)]")

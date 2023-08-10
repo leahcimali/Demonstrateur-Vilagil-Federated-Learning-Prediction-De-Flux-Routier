@@ -4,10 +4,13 @@
 import streamlit as st
 
 
-from utils_streamlit_app import results_to_dataframe, get_colors_for_results, selection_of_experiment, style_dataframe, load_experiment_results, load_experiment_config
+from utils_streamlit_app import results_to_dataframe, get_colors_for_results, selection_of_experiment, style_dataframe, load_experiment_results, load_experiment_config, get_results_for_key, get_name_version_normalized
 from sub_pages_one_sensor.box_plot import box_plot_sensor
 from sub_pages_one_sensor.predictions_graph import prediction_graph_sensor
 from sub_pages_one_sensor.single_sensor_map import single_sensor_map_sensor
+
+import pandas as pd
+import numpy as np
 
 
 #######################################################################
@@ -75,6 +78,26 @@ if path_experiment_selected is not None:
     st.subheader(f"Working on sensor {config['nodes_to_filter'][int(sensor_selected)]}")
 
     render_results(stats_sensor_federated, stats_sensor_local)
+
+    federated_ver, local_only_ver = get_name_version_normalized(False)
+
+    results_sensor_federated = get_results_for_key(results, sensor_selected, federated_ver)
+    results_sensor_local = get_results_for_key(results, sensor_selected, local_only_ver)
+
+    metrics = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
+    avg_rate_change = {}
+    for metric in metrics:
+        for i in range(len(results_sensor_federated)):
+            if metric not in avg_rate_change.keys():
+                avg_rate_change[metric] = 1 + ((results_sensor_federated[i][metric] - results_sensor_local[i][metric]) / results_sensor_local[i][metric])
+            else:
+                avg_rate_change[metric] = avg_rate_change[metric] * (1 + ((results_sensor_federated[i][metric] - results_sensor_local[i][metric]) / results_sensor_local[i][metric]))
+    for metric in metrics:
+        avg_rate_change[metric] = (np.power(avg_rate_change[metric], (1 / len(results_sensor_federated))) - 1) * 100
+
+    avg_rate_change = pd.DataFrame.from_dict(avg_rate_change, orient="index", columns=["Average rate of change"])
+    avg_rate_change = avg_rate_change.applymap(lambda x: '{:.2f} %'.format(x))
+    st.table(avg_rate_change.style.set_table_styles(style_dataframe(avg_rate_change, colors="#000000", column_index=2)))
 
     PAGES[page_selectioned](path_experiment_selected, sensor_selected)
 
