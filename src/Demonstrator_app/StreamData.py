@@ -7,18 +7,18 @@ from utils_streamlit_app import get_color_fed_vs_local, style_dataframe
 METRICS = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
 
 
-class ClusterData:
-    def __init__(self, cluster, config_cluster, path_to_exp=None):
-        super(ClusterData, self).__init__()
-        if path_to_exp != None:
+class StreamData:
+    def __init__(self, stream_data, config_stream_data, path_to_exp=None):
+        super(StreamData, self).__init__()
+        if path_to_exp is not None:
             self.path_to_exp = path_to_exp
-        self.data = cluster
-        self.parameters = config_cluster
-        self.indexes = list(cluster.keys())
-        self.sensors = [config_cluster["nodes_to_filter"][int(index)] for index in cluster.keys()]
-        self.sensors_name = config_cluster["nodes_to_filter"]
-        self.name = config_cluster["save_model_path"]
-        self.size = len(cluster)
+        self.data = stream_data
+        self.parameters = config_stream_data
+        self.indexes = list(stream_data.keys())
+        self.sensors = [config_stream_data["nodes_to_filter"][int(index)] for index in stream_data.keys()]
+        self.sensors_name = config_stream_data["nodes_to_filter"]
+        self.name = config_stream_data["save_model_path"]
+        self.size = len(stream_data)
 
     def get_sensor_metric_unormalized_local_values(self, node, metric):
         return self.data[node]["local_only_unormalized"][metric]
@@ -133,8 +133,7 @@ class ClusterData:
             "learning_rate": "Learning Rate",
             "model": "Model"
         }
-        st.subheader("Parameters of the cluster")
-        st.write("Note: Only the number of sensors and the sensors used in the cluster change between clusters.")
+        st.subheader("Parameters of the experiments")
         st.write("")
         st.write("Length of Time Series: Percentage of the time series used before splitting the dataset into train/validation/test sets.")
         st.write("Window Size (**WS**): The number of time steps in the historical data considered by the model for making predictions.")

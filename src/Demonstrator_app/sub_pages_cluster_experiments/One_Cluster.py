@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import networkx as nx
 import numpy as np
 
-from ClusterData import ClusterData
+from StreamData import StreamData
 from utils_streamlit_app import load_experiment_results, load_experiment_config, create_selectbox_metrics, load_graph
 
 
@@ -197,7 +197,7 @@ def one_cluster(experiments_path):
     clusters = {}
     for path_exp in experiments_path:
         path_exp_parent = PurePath(path_exp).parent
-        cluster = ClusterData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
+        cluster = StreamData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
         clusters[cluster.name] = cluster
     cluster = st.selectbox("Select the cluster", list(clusters.keys()))
     st.subheader(f"Nb sensor in the cluster : {clusters[cluster].size}")

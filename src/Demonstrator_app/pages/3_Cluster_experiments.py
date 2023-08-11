@@ -5,7 +5,7 @@ import streamlit as st
 
 from sub_pages_cluster_experiments import One_Cluster, All_Clusters
 from utils_streamlit_app import load_experiment_config, load_experiment_results, selection_of_experiment_cluster
-from ClusterData import ClusterData
+from StreamData import StreamData
 
 
 #######################################################################
@@ -33,7 +33,7 @@ if experiments_path := glob.glob(f"./{selection_of_experiment_cluster()}/**/conf
             PAGES.keys(),
             index=0
         )
-    ClusterData(load_experiment_results(PurePath(experiments_path[0]).parent), load_experiment_config(PurePath(experiments_path[0]).parent)).show_parameters()
+    StreamData(load_experiment_results(PurePath(experiments_path[0]).parent), load_experiment_config(PurePath(experiments_path[0]).parent)).show_parameters()
     st.divider()
     PAGES[page_selectioned](experiments_path)
 else:

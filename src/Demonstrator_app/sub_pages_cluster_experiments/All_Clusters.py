@@ -10,7 +10,7 @@ import random
 
 
 import plotly.graph_objects as go
-from ClusterData import ClusterData
+from StreamData import StreamData
 from src.Demonstrator_app.utils_streamlit_app import style_dataframe
 from utils_streamlit_app import load_experiment_results, load_experiment_config, load_graph
 
@@ -477,7 +477,7 @@ def all_clusters(experiments_path):
     clusters = []
     for path_exp in experiments_path:
         path_exp_parent = PurePath(path_exp).parent
-        cluster = ClusterData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
+        cluster = StreamData(load_experiment_results(path_exp_parent), load_experiment_config(path_exp_parent))
         clusters.append(cluster)
 
     st.subheader(f"Nb cluster(s): {len(clusters)}")
