@@ -12,7 +12,7 @@
         ```
 * Fourth start streamlit to visualize like this:
     * ``` bash
-        streamlit.exe run ./src/Home.py
+        streamlit.exe run ./src/Demonstrator_app/Home.py
         ```
 
 # How to visualize your Cluster experiments
