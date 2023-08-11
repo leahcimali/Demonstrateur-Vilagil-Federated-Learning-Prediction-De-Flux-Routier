@@ -4,15 +4,11 @@
 import streamlit as st
 
 
-from utils_streamlit_app import results_to_dataframe, get_colors_for_results, selection_of_experiment, style_dataframe, load_experiment_results, load_experiment_config, get_results_for_key, get_name_version_normalized
+from utils_streamlit_app import get_colors_for_results, selection_of_experiment, style_dataframe, load_experiment_results, load_experiment_config
 from sub_pages_one_sensor.box_plot import box_plot_sensor
 from sub_pages_one_sensor.predictions_graph import prediction_graph_sensor
 from sub_pages_one_sensor.single_sensor_map import single_sensor_map_sensor
 from StreamData import StreamData
-
-import pandas as pd
-import numpy as np
-
 
 #######################################################################
 # Constant(s)
