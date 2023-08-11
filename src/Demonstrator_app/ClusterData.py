@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -101,6 +102,16 @@ class ClusterData:
             st.subheader("Local")
             # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
             st.table(df_local.style.set_table_styles(style_dataframe(df_local, colors=color_local, column_index=2)))
+
+        avg_rate_change = {}
+        for metric in METRICS:
+            avg_rate_change[metric] = 1 + ((self.data[sensor][federated_ver][metric] - self.data[sensor][local_ver][metric]) / self.data[sensor][local_ver][metric])
+            avg_rate_change[metric] = (np.power(avg_rate_change[metric], 1) - 1) * 100
+
+        st.subheader("Average rate of change Local to Federated version")
+        avg_rate_change = pd.DataFrame.from_dict(avg_rate_change, orient="index", columns=["Average rate of change"])
+        avg_rate_change = avg_rate_change.applymap(lambda x: '{:.4f} %'.format(x))
+        st.table(avg_rate_change.style.set_table_styles(style_dataframe(avg_rate_change, colors="#000000", column_index=2)))
 
     def show_parameters(self):
         df_parameters = pd.DataFrame(self.parameters, columns=["time_serie_percentage_length",
