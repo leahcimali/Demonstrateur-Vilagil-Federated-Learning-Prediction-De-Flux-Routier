@@ -87,14 +87,10 @@ if path_experiment_selected is not None:
     metrics = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
     avg_rate_change = {}
     for metric in metrics:
-        for i in range(len(results_sensor_federated)):
-            if metric not in avg_rate_change.keys():
-                avg_rate_change[metric] = 1 + ((results_sensor_federated[i][metric] - results_sensor_local[i][metric]) / results_sensor_local[i][metric])
-            else:
-                avg_rate_change[metric] = avg_rate_change[metric] * (1 + ((results_sensor_federated[i][metric] - results_sensor_local[i][metric]) / results_sensor_local[i][metric]))
-    for metric in metrics:
-        avg_rate_change[metric] = (np.power(avg_rate_change[metric], (1 / len(results_sensor_federated))) - 1) * 100
+        avg_rate_change[metric] = 1 + ((results_sensor_federated[0][metric] - results_sensor_local[0][metric]) / results_sensor_local[0][metric])
+        avg_rate_change[metric] = (np.power(avg_rate_change[metric], 1) - 1) * 100
 
+    st.subheader("Average rate of change Local to Federated version")
     avg_rate_change = pd.DataFrame.from_dict(avg_rate_change, orient="index", columns=["Average rate of change"])
     avg_rate_change = avg_rate_change.applymap(lambda x: '{:.2f} %'.format(x))
     st.table(avg_rate_change.style.set_table_styles(style_dataframe(avg_rate_change, colors="#000000", column_index=2)))
