@@ -25,7 +25,8 @@ st.markdown("""
             """)
 st.divider()
 
-if experiments_path := glob.glob(f"./{selection_of_experiment_cluster()}/**/config.json", recursive=True):
+if experiments_path := glob.glob(f"./{selection_of_experiment_cluster()}/**/config.json",
+                                recursive=True):
     st.sidebar.title("Visualization")
     with st.sidebar:
         page_selectioned = st.radio(
@@ -33,7 +34,9 @@ if experiments_path := glob.glob(f"./{selection_of_experiment_cluster()}/**/conf
             PAGES.keys(),
             index=0
         )
-    StreamData(load_experiment_results(PurePath(experiments_path[0]).parent), load_experiment_config(PurePath(experiments_path[0]).parent)).show_parameters()
+    StreamData(
+        load_experiment_results(PurePath(experiments_path[0]).parent),
+        load_experiment_config(PurePath(experiments_path[0]).parent)).show_parameters()
     st.divider()
     PAGES[page_selectioned](experiments_path)
 else:
