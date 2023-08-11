@@ -3,6 +3,7 @@
 ###############################################################################
 import math
 from pathlib import PurePath
+import pandas as pd
 import streamlit as st
 import networkx as nx
 import random
@@ -10,6 +11,7 @@ import random
 
 import plotly.graph_objects as go
 from ClusterData import ClusterData
+from src.Demonstrator_app.utils_streamlit_app import style_dataframe
 from utils_streamlit_app import load_experiment_results, load_experiment_config, load_graph
 
 
@@ -262,6 +264,12 @@ def render_proportion_sensor_better_in_federated_no_mean(clusters, metric, title
 
     st.plotly_chart(fig, use_container_width=True)
 
+    st.subheader("Summary proportion of sensor improved by the federation")
+    df_percent_sensor_improve = pd.DataFrame(percent_sensor_improve, columns=["Value"]).describe().T
+    df_percent_sensor_improve = df_percent_sensor_improve.applymap(lambda x: '{:.4f}'.format(x))
+    df_percent_sensor_improve["count"] = pd.DataFrame(df_percent_sensor_improve["count"]).applymap(lambda x: '{:.0f}'.format(float(x)))
+    st.table(df_percent_sensor_improve.style.set_table_styles(style_dataframe(df_percent_sensor_improve, colors="#FF00FF", column_index=2)))
+
 
 def render_proportion_sensor_better_in_federated(clusters, metric, title="", descending=False):
     st.subheader("Compare clusters based on their size and the proportion of sensors that have better results with the federated version compared to the local version")
@@ -349,9 +357,6 @@ def render_bar_plot_fed_vs_local(clusters, metric, title="Bar plot"):
     clusters_name = [str(cluster.sensors_name) for cluster in clusters]
     clusters_fed_mean_metric = [cluster.get_sensors_federated_stats(metric, normalized=normalized) for cluster in clusters]
     clusters_local_mean_metric = [cluster.get_sensors_local_stats(metric, normalized=normalized) for cluster in clusters]
-    num_clusters = len(clusters_name)
-
-    
 
     if sorted_by == "Federated":
         sorted_fed_metric_mean = sorted(clusters_fed_mean_metric, reverse=descending == "Descending")

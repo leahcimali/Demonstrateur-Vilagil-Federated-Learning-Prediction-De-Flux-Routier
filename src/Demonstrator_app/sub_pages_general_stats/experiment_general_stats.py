@@ -71,6 +71,7 @@ def render_experiment(path_experiment_selected):
     df_mean_diff = df_mean_diff.applymap(lambda x: '{:.4f}'.format(x))
     st.table(df_mean_diff.style.set_table_styles(style_dataframe(df_mean_diff, colors="#000000", column_index=2)))
 
+    st.subheader("Average rate of change Local to Federated version")
     avg_rate_change = pd.DataFrame.from_dict(avg_rate_change, orient="index", columns=["Average rate of change"])
     avg_rate_change = avg_rate_change.applymap(lambda x: '{:.4f} %'.format(x))
     st.table(avg_rate_change.style.set_table_styles(style_dataframe(avg_rate_change, colors="#000000", column_index=2)))
