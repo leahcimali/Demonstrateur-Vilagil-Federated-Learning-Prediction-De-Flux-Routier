@@ -8,6 +8,7 @@ from utils_streamlit_app import results_to_dataframe, get_colors_for_results, se
 from sub_pages_one_sensor.box_plot import box_plot_sensor
 from sub_pages_one_sensor.predictions_graph import prediction_graph_sensor
 from sub_pages_one_sensor.single_sensor_map import single_sensor_map_sensor
+from StreamData import StreamData
 
 import pandas as pd
 import numpy as np
@@ -66,34 +67,15 @@ path_experiment_selected = selection_of_experiment()
 if path_experiment_selected is not None:
     results = load_experiment_results(path_experiment_selected)
     config = load_experiment_config(path_experiment_selected)
+    stream_data = StreamData(results, config)
 
     def format_selectbox_sensor(value):
-        return config["nodes_to_filter"][int(value)]
+        return stream_data.parameters["nodes_to_filter"][int(value)]
 
-    sensor_selected = st.sidebar.selectbox('Choose the sensor', results.keys(), format_func=format_selectbox_sensor)
+    sensor_selected = st.sidebar.selectbox('Choose the sensor', stream_data.indexes, format_func=format_selectbox_sensor)
 
-    stats_sensor_federated = results_to_dataframe(results, sensor_selected, "Federated_unormalized")
-    stats_sensor_local = results_to_dataframe(results, sensor_selected, "local_only_unormalized")
-
-    st.subheader(f"Working on sensor {config['nodes_to_filter'][int(sensor_selected)]}")
-
-    render_results(stats_sensor_federated, stats_sensor_local)
-
-    federated_ver, local_only_ver = get_name_version_normalized(False)
-
-    results_sensor_federated = get_results_for_key(results, sensor_selected, federated_ver)
-    results_sensor_local = get_results_for_key(results, sensor_selected, local_only_ver)
-
-    metrics = ["RMSE", "MAE", "MAAPE", "Superior Pred %"]
-    avg_rate_change = {}
-    for metric in metrics:
-        avg_rate_change[metric] = 1 + ((results_sensor_federated[0][metric] - results_sensor_local[0][metric]) / results_sensor_local[0][metric])
-        avg_rate_change[metric] = (np.power(avg_rate_change[metric], 1) - 1) * 100
-
-    st.subheader("Average rate of change Local to Federated version")
-    avg_rate_change = pd.DataFrame.from_dict(avg_rate_change, orient="index", columns=["Average rate of change"])
-    avg_rate_change = avg_rate_change.applymap(lambda x: '{:.2f} %'.format(x))
-    st.table(avg_rate_change.style.set_table_styles(style_dataframe(avg_rate_change, colors="#000000", column_index=2)))
+    st.subheader(f"Working on sensor {stream_data.sensors_name[int(sensor_selected)]}")
+    stream_data.show_results_sensor(sensor_selected, False)
 
     PAGES[page_selectioned](path_experiment_selected, sensor_selected)
 
