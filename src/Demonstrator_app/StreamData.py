@@ -32,6 +32,20 @@ class StreamData:
     def get_sensor_metric_normalized_federated_values(self, node, metric):
         return self.data[node]["Federated_normalized"][metric]
 
+    def get_results_federated(self, normalized=False):
+        version = "Federated_normalized" if normalized else "Federated_unormalized"
+        return [
+            self.data[sensor][version]
+            for sensor in self.indexes
+        ]
+
+    def get_results_local(self, normalized=False):
+        version = "local_only_normalized" if normalized else "local_only_unormalized"
+        return [
+            self.data[sensor][version]
+            for sensor in self.indexes
+        ]
+
     def get_sensors_name_better_in_federated(self, metric):
         sensors_name = []
         for sensor in self.indexes:
@@ -42,25 +56,19 @@ class StreamData:
                 sensors_name.append(self.sensors_name[int(sensor)])
         return sensors_name
 
-    def get_sensors_federated_stats(self, metric, normalized=True):
-        if normalized:
-            federated_ver = "Federated_normalized"
+    def get_sensors_federated_stats(self, metric=None, normalized=True):
+        df = pd.DataFrame(self.get_results_federated(normalized), columns=METRICS)
+        if metric is None:
+            return df.describe().T.drop(columns="count", inplace=False, axis=1)
         else:
-            federated_ver = "Federated_unormalized"
-        return pd.DataFrame([
-            self.data[sensor][federated_ver]
-            for sensor in self.indexes
-        ]).describe().T.loc[metric]["mean"].item()
+            return df.describe().T.loc[metric]["mean"].item()
 
-    def get_sensors_local_stats(self, metric, normalized=True):
-        if normalized:
-            local_only_ver = "local_only_normalized"
+    def get_sensors_local_stats(self, metric=None, normalized=True):
+        df = pd.DataFrame(self.get_results_local(normalized), columns=METRICS)
+        if metric is None:
+            return df.describe().T.drop(columns="count", inplace=False, axis=1)
         else:
-            local_only_ver = "local_only_unormalized"
-        return pd.DataFrame([
-            self.data[sensor][local_only_ver]
-            for sensor in self.indexes
-        ]).describe().T.loc[metric]["mean"].item()
+            return df.describe().T.loc[metric]["mean"].item()
 
     def get_nb_sensor_better_in_federation(self, metric):
         nb_sensor = 0
@@ -71,6 +79,27 @@ class StreamData:
             elif self.data[sensor]["Federated_unormalized"][metric] <= self.data[sensor]["local_only_unormalized"][metric]:
                 nb_sensor += 1
         return nb_sensor
+
+    def compute_average_rate_of_change(self, sensors=None, normalized=False):
+        if normalized:
+            federated_ver = "Federated_normalized"
+            local_ver = "local_only_normalized"
+        else:
+            federated_ver = "Federated_unormalized"
+            local_ver = "local_only_unormalized"
+
+        if sensors is None:
+            sensors = self.indexes
+        avg_rate_change = {}
+        for metric in METRICS:
+            for sensor in sensors:
+                if metric not in avg_rate_change.keys():
+                    avg_rate_change[metric] = 1 + ((self.data[sensor][federated_ver][metric] - self.data[sensor][local_ver][metric]) / self.data[sensor][local_ver][metric])
+                else:
+                    avg_rate_change[metric] = avg_rate_change[metric] * (1 + ((self.data[sensor][federated_ver][metric] - self.data[sensor][local_ver][metric]) / self.data[sensor][local_ver][metric]))
+        for metric in METRICS:
+            avg_rate_change[metric] = (np.power(avg_rate_change[metric], (1 / len(sensors))) - 1) * 100
+        return avg_rate_change
 
     def show_results_sensor(self, sensor, normalized=False):
         if normalized:
@@ -103,11 +132,51 @@ class StreamData:
             # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
             st.table(df_local.style.set_table_styles(style_dataframe(df_local, colors=color_local, column_index=2)))
 
-        avg_rate_change = {}
-        for metric in METRICS:
-            avg_rate_change[metric] = 1 + ((self.data[sensor][federated_ver][metric] - self.data[sensor][local_ver][metric]) / self.data[sensor][local_ver][metric])
-            avg_rate_change[metric] = (np.power(avg_rate_change[metric], 1) - 1) * 100
+        avg_rate_change = self.compute_average_rate_of_change([sensor], normalized)
+        st.subheader("Average rate of change Local to Federated version")
+        avg_rate_change = pd.DataFrame.from_dict(avg_rate_change, orient="index", columns=["Average rate of change"])
+        avg_rate_change = avg_rate_change.applymap(lambda x: '{:.4f} %'.format(x))
+        st.table(avg_rate_change.style.set_table_styles(style_dataframe(avg_rate_change, colors="#000000", column_index=2)))
 
+    def show_results(self, normalized=False):
+        stats_fed_ver = self.get_sensors_federated_stats(normalized=normalized)
+        stats_fed_ver = stats_fed_ver.applymap(lambda x: '{:.4f}'.format(x))
+        stats_local_ver = self.get_sensors_local_stats(normalized=normalized)
+        stats_local_ver = stats_local_ver.applymap(lambda x: '{:.4f}'.format(x))
+        mean_stats_fed_ver = stats_fed_ver["mean"]
+        mean_stats_local_ver = stats_local_ver["mean"]
+
+        df_mean_diff = pd.DataFrame({"local": mean_stats_local_ver, "diff_on_mean": mean_stats_fed_ver})
+        df_mean_diff["diff_on_mean"] = df_mean_diff["diff_on_mean"].astype(float)
+        df_mean_diff["local"] = df_mean_diff["local"].astype(float)
+
+        color_fed = []
+        color_local = []
+        for metric in METRICS:
+            if (metric != "Superior Pred %"):
+                col_fed, col_local = get_color_fed_vs_local(stats_fed_ver.loc[metric]["mean"], stats_local_ver.loc[metric]["mean"], superior=False)
+            else:  # because "Superior Pred %" metric needs to be superior=True
+                col_fed, col_local = get_color_fed_vs_local(stats_fed_ver.loc[metric]["mean"], stats_local_ver.loc[metric]["mean"], superior=True)
+            color_fed.append(col_fed)
+            color_local.append(col_local)
+
+        c1, c2 = st.columns(2, gap="small")
+        with c1:
+            st.subheader("Federated")
+            # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
+            st.table(stats_fed_ver.style.set_table_styles(style_dataframe(stats_fed_ver, colors=color_fed, column_index=2)))
+        with c2:
+            st.subheader("Local")
+            # use st.table because st.dataframe is not personalizable for the moment (version 1.22)
+            st.table(stats_local_ver.style.set_table_styles(style_dataframe(stats_local_ver, colors=color_local, column_index=2)))
+
+        st.subheader("Difference between federated and local value on the mean")
+        df_mean_diff = df_mean_diff.diff(axis=1)
+        df_mean_diff.drop("local", axis=1, inplace=True)
+        df_mean_diff = df_mean_diff.applymap(lambda x: '{:.4f}'.format(x))
+        st.table(df_mean_diff.style.set_table_styles(style_dataframe(df_mean_diff, colors="#000000", column_index=2)))
+
+        avg_rate_change = self.compute_average_rate_of_change(normalized=normalized)
         st.subheader("Average rate of change Local to Federated version")
         avg_rate_change = pd.DataFrame.from_dict(avg_rate_change, orient="index", columns=["Average rate of change"])
         avg_rate_change = avg_rate_change.applymap(lambda x: '{:.4f} %'.format(x))

@@ -103,7 +103,7 @@ def render_bar_plot_fed_vs_local(cluster, metric, normalized: bool, sorted_by: s
     fig.add_annotation(
         x=0,
         y=0.94,
-        text=f"The average rate of change with the federated version is : {round(np.mean(np.array(avg_rate_change)), 4)}%",
+        text=f"The average rate of change from local to the federated version is : {round(np.mean(np.array(avg_rate_change)), 4)}%",
         font=dict(size=18, color="black"),
         showarrow=False,
         xref="paper",
