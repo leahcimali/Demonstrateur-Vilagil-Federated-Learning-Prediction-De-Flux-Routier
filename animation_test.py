@@ -1,28 +1,26 @@
 import sys
 
 sys.path.append("./src/")
+sys.path.append("./src/Demonstrator_app/")
 
 from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtGui import QPainter, QWheelEvent
 from PyQt5.QtCore import Qt
-from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsProxyWidget, QSizePolicy, QSlider, QPushButton
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from pathlib import PurePath
-from metrics import rmse
-import plotly.express as px
+from PyQt5.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QSizePolicy, QSlider, QPushButton
 import plotly.graph_objects as go
-import numpy as np
 import networkx as nx
 import pandas as pd
 import pyqtgraph as pg
 
 
-from src.ClusterData import ClusterData
+from src.Demonstrator_app.StreamData import StreamData
 from src.utils_data import load_PeMS04_flow_data
 from src.utils_graph import create_graph
-from src.utils_streamlit_app import load_experiment_results, load_numpy, get_color_fed_vs_local, load_experiment_config
+from src.Demonstrator_app.utils_streamlit_app import load_experiment_results, load_numpy, load_experiment_config
+
+
+import datetime
+import time
 
 
 def load_experiment_results_sensor(experiment_path, sensor_selected):
@@ -35,6 +33,8 @@ def load_experiment_results_sensor(experiment_path, sensor_selected):
 #######################################################################
     # Figure(s)
 #######################################################################
+
+
 def add_y_pred_federation(fig, df, color_fed, rmse_fed):
     fig.add_scatter(
         x=df['Time'],
@@ -94,18 +94,8 @@ def update_xaxis_range(fig, range_xaxis):
 
 def create_fig(df, color_fed, color_local, rmse_fed, rmse_local):
     fig = go.Figure()
-
     add_y_pred_federation(fig, df, color_fed, rmse_fed)
-    # add_y_pred_federation_link_window(fig, df, color_fed)
-
-    # add_y_pred_local(fig, df, color_local, rmse_local)
-    # add_y_pred_local_link_window(fig, df, color_local)
     return fig
-
-
-def update_axis(fig, range_x_axis, range_y_axis):
-    update_xaxis_range(fig, range_x_axis)
-    update_yaxis_range(fig, range_y_axis)
 
 
 def update_layout_fig(fig):
@@ -121,9 +111,6 @@ def update_layout_fig(fig):
     )
 
 
-#######################################################################
-    # Dataframe
-#######################################################################
 def add_y_pred_fed_to_df(df, config, y_pred_fed):
     df['y_pred_federation'] = y_pred_fed
     return df
@@ -131,52 +118,45 @@ def add_y_pred_fed_to_df(df, config, y_pred_fed):
 
 def create_dataframe(index, test_set, config, y_pred_fed, y_pred_local, i):
     df = pd.DataFrame({'Time': index[i + config["window_size"]: i + config["window_size"] + config["prediction_horizon"]], 'Traffic Flow': test_set[i + config["window_size"]: i + config["window_size"] + config["prediction_horizon"]].flatten()})
-
     df = add_y_pred_fed_to_df(df, config, y_pred_fed)
     return df
 
 
+class CustomDateAxisItem(pg.DateAxisItem):
+    def tickStrings(self, values, scale, spacing):
+        return [QtCore.QDateTime.fromSecsSinceEpoch(value).toString("hh:mm") for value in values]
+
+
 def graph_prediction(experiment_path, index, config, sensor_selected, i=0):
-    y_true, y_pred_local, y_pred_fed, test_set = load_experiment_results_sensor(experiment_path, sensor_selected)
-
-    rmse_fed = rmse(y_true[i, :].flatten(), y_pred_fed[i, :].flatten())
-    rmse_local = rmse(y_true[i, :].flatten(), y_pred_local[i, :].flatten())
-
-    color_fed, color_local = ("#00dd00", "#fe4269")
+    _, y_pred_local, y_pred_fed, test_set = load_experiment_results_sensor(experiment_path, sensor_selected)
 
     df = create_dataframe(index, test_set, config, y_pred_fed[i, :], y_pred_local[i, :], i)
+    stringaxis = pg.AxisItem(orientation='bottom')
+    xdict = dict(enumerate([date.strftime("%H:%M") for date in df["Time"]]))
+    stringaxis.setTicks([xdict.items()])
 
-    fig = pg.PlotWidget()  # create_fig(df, color_fed, color_local, rmse_fed, rmse_local)
-    fig.plot(df["Time"], df["y_pred_federation"], pen=pg.mkPen(color='b', width=2), symbol='o', symbolPen='r', symbolBrush='g')
+    fig = pg.PlotWidget()
+    fig.setAxisItems(axisItems={'bottom': stringaxis})
+    fig.plot(list(xdict.keys()),
+            df["y_pred_federation"],
+            pen=pg.mkPen(color='b', width=2),
+            symbol='o',
+            symbolPen='r',
+            symbolBrush='g')
+    fig.setBackground('w')
+    fig.showGrid(x=True, y=True)
+    fig.getViewBox().setMouseEnabled(x=False, y=False)
+    fig.setYRange(0, 600)
 
-    min_yaxis = min(min(y_true.flatten()), min((min(y_pred_fed.flatten()), min(y_pred_local.flatten()))))
-    max_yaxis = max((max(y_true.flatten()), max(y_pred_fed.flatten()), max(y_pred_local.flatten())))
-    fig.setXRange(index[i + config["window_size"]], index[i + config["window_size"] + config["prediction_horizon"]])
-    fig.setYRange(min_yaxis, max_yaxis)
-
-    update_layout_fig(fig)
     return fig
-
-
-class ZoomableWebEngineView(QWebEngineView):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.scale_factor = 1.0
-
-    def wheelEvent(self, event: QWheelEvent):
-        # Handle zoom in/out using the mouse wheel
-        delta = event.angleDelta().y()
-        if delta > 0:
-            self.scale_factor *= 1.1
-        else:
-            self.scale_factor *= 0.9
-        self.setZoomFactor(self.scale_factor)
 
 
 class MainWindow(QMainWindow):
     def __init__(self, G, cluster):
         super().__init__()
         self.cluster = cluster
+        self.graph = G
+
         self.index = load_numpy(f"{cluster.path_to_exp}/index_{cluster.indexes[0]}.npy")
         self.index = pd.to_datetime(self.index, format='%Y-%m-%dT%H:%M:%S.%f')
 
@@ -187,36 +167,34 @@ class MainWindow(QMainWindow):
 
         # Create QGraphicsScene to hold the plot widgets
         self.plot_scene = QGraphicsScene(self)
-        self.plot_scene.setSceneRect(0, 0, 2450, 650)  # Prendre une plus grande taille pour accueillir tous les graphiques (widget)
+        self.plot_scene.setSceneRect(0, 0, 800 * 9, 600 * 9)
 
+        # Create Qslider
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setFocusPolicy(Qt.StrongFocus)
         self.slider.setTickPosition(QSlider.TicksBothSides)
         self.slider.setTickInterval(len(self.index))
         self.slider.setSingleStep(1)
         self.slider.valueChanged.connect(self.update_slider)
-
         widget_in_scene = self.plot_scene.addWidget(self.slider)
-        widget_in_scene.setPos(50, 650)
+        widget_in_scene.setPos(50, 10)
+        self.slider_timer = None
+        self.slider_direction = 1
 
         self.button = QPushButton("Start Slider")
         self.button.clicked.connect(self.toggle_slider)
         widget_in_scene = self.plot_scene.addWidget(self.button)
-        widget_in_scene.setPos(50, 700)
+        widget_in_scene.setPos(200, 10)
 
-        self.slider_timer = None
-        self.slider_direction = 1
+        pos = nx.spring_layout(G, k=1, iterations=300, seed=42)
 
         self.map_sensor_graph = {}
         self.map_sensor_webview = {}
-        for sensor in ['0', '1', '2']:
-            # self.map_sensor_webview[sensor] = QWebEngineView()
+        for sensor in cluster.indexes:
             self.map_sensor_graph[sensor] = graph_prediction(cluster.path_to_exp, self.index, cluster.parameters, sensor, 0)
-            # self.map_sensor_webview[sensor].setHtml(self.map_sensor_graph[sensor].to_html(include_plotlyjs='cdn'))
-            # self.map_sensor_webview[sensor].setContentsMargins(0, 0, 0, 0)
-            # self.map_sensor_webview[sensor].setFixedSize(800, 600)
             widget_in_scene = self.plot_scene.addWidget(self.map_sensor_graph[sensor])
-            widget_in_scene.setPos(805 * int(sensor), 0)
+            widget_in_scene.resize(800, 600)
+            widget_in_scene.setPos(800 * int(sensor), 50)
 
         # Add the QGraphicsScene to the QGraphicsView
         self.plot_view.setScene(self.plot_scene)
@@ -232,7 +210,7 @@ class MainWindow(QMainWindow):
         self.plot_view.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
 
         # Set the main window size
-        self.setGeometry(100, 100, 800, 600)  # Taille de la fenêtre de l'application
+        self.setGeometry(0, 0, 800, 600)  # Taille de la fenêtre de l'application
 
     # Implement zoom functionality for the plot widgets (you can adjust the scale factor as needed)
     def wheelEvent(self, event):
@@ -246,12 +224,23 @@ class MainWindow(QMainWindow):
             super().wheelEvent(event)
 
     def update_slider(self, value):
-        self.plot_scene.setSceneRect(0, 0, 2450, 650)  # Prendre une plus grande taille pour accueillir tous les graphiques (widget)
-        for sensor in ['0', '1', '2']:
-            y_true, y_pred_local, y_pred_fed, test_set = load_experiment_results_sensor(self.cluster.path_to_exp, sensor)
+        for sensor in self.cluster.indexes:
+            _, y_pred_local, y_pred_fed, test_set = load_experiment_results_sensor(self.cluster.path_to_exp, sensor)
             df = create_dataframe(self.index, test_set, self.cluster.parameters, y_pred_fed[value, :], y_pred_local[value, :], value)
+
             self.map_sensor_graph[sensor].clear()
-            self.map_sensor_graph[sensor].plot(df["Time"], df["y_pred_federation"], pen='r')
+            stringaxis = pg.AxisItem(orientation='top')
+            xdict = dict(enumerate([date.strftime("%H:%M") for date in df["Time"]]))
+            stringaxis.setTicks([xdict.items()])
+            self.map_sensor_graph[sensor].setAxisItems(axisItems={'top': stringaxis})
+
+            self.map_sensor_graph[sensor].plot(list(xdict.keys()),
+                df["y_pred_federation"],
+                pen=pg.mkPen(color='b', width=2),
+                symbol='o',
+                symbolPen='r',
+                symbolBrush='g',
+            )
 
     def toggle_slider(self):
         if self.slider_timer is None:
@@ -277,9 +266,9 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
-    path_exp = "community_experiments/28_cluster_with_Louvain_Algo/community0/"
+    path_exp = "community_experiments/28_cluster_with_Louvain_Algo/community12/"
     clusters = {}
-    cluster = ClusterData(load_experiment_results(path_exp), load_experiment_config(path_exp), path_exp)
+    cluster = StreamData(load_experiment_results(path_exp), load_experiment_config(path_exp), path_exp)
 
     _, distance = load_PeMS04_flow_data()
     G = create_graph(distance)
