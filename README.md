@@ -1,6 +1,7 @@
 # Projet-Vilagil
 ## Application of Federated Learning to urban mobility data. 
 ### Associate to Toulouse city Vilagil Project.
+Use python 3.9 
 
 Ongoing Project: Vilagil - Data and mobility.
 
@@ -14,5 +15,5 @@ To install torch version, torchvision and torchaudio use this line :
 
 To run the visualizations : `streamlit.exe run ./src/Home.py`   
 To see the steps to run experiments and visualizations see the docs/how_to_visualize_results.md   
-
+Use experiments after update directories and rename them : 
 Experiments results and models : https://drive.google.com/drive/folders/1SDk7oa4IaASBpCoj8BIQrStD3ixo-B2U?usp=drive_link
